@@ -1,0 +1,17 @@
+{
+  "name": "aix-marketing",
+  "version": "1.0.0",
+  "description": "Agentic marketing use cases with Claude",
+  "type": "module",
+  "scripts": {
+    "brand-brief": "node 00-brand-brief/demo.js",
+    "email-basics": "node 01-email-basics/demo.js",
+    "email-sequence": "node 03-email-sequences/demo.js",
+    "cold-email": "node 04-cold-email-instantly/demo.js",
+    "ads": "node 07-ads/demo.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0",
+    "dotenv": "^16.4.5"
+  }
+}
