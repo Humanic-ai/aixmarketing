@@ -1,4 +1,4 @@
-# AIX Marketing by Humanic
+# AIxMarketing by Humanic
 
 **Agentic lifecycle marketing powered by Claude Code skills.**
 
