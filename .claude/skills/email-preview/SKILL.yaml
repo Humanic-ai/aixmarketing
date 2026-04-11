@@ -1,0 +1,240 @@
+name: email-preview
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Audits email copy or HTML and generates a client-safe version that renders
+    correctly across Gmail, Yahoo, Hotmail/Outlook.com, Outlook desktop Windows,
+    and Apple Mail — on both desktop and mobile — with a per-client compatibility
+    checklist and a guide to free and paid preview tools.
+  trigger_phrases:
+    - "preview my email"
+    - "check how my email renders"
+    - "make my email work in Outlook"
+    - "test email on Gmail"
+    - "test email on Yahoo"
+    - "test email on Apple Mail"
+    - "test email on Hotmail"
+    - "render email on mobile"
+    - "check email compatibility"
+    - "make email client-safe"
+    - "email HTML rendering"
+    - "email dark mode"
+  when_to_use: >
+    Use this skill whenever the user has email copy or HTML and wants to ensure
+    it renders correctly before sending. It fetches the latest client support
+    matrix from caniemail.com, audits the email client-by-client, generates
+    production-ready client-safe HTML with inline comments, produces a
+    per-client compatibility checklist, and provides a guide to preview tools
+    (free and paid) with manual testing methods for each client.
+
+instructions:
+  - step: 1
+    name: "Collect the Email"
+    content: |
+      Ask the user to provide one of:
+      - Raw copy (subject line + body text) — the skill generates client-safe
+        HTML from scratch
+      - Existing HTML — the skill audits and fixes it
+
+      Also confirm:
+      - Email width target: 600px (standard) or custom?
+      - Does it include images? (affects Outlook fallback requirements)
+      - Does it use custom/web fonts? (most clients ignore these — system font
+        fallbacks needed)
+      - Is dark mode support required? (adds significant complexity)
+
+  - step: 2
+    name: "Fetch Current Compatibility Data"
+    instruction: >
+      Use the WebFetch tool to pull the latest client support matrix. This
+      ensures the checklist reflects current client support, not cached
+      assumptions.
+    source:
+      url: "https://www.caniemail.com/api/data.json"
+      prompt: >
+        Extract support data for: CSS border-radius, CSS box-shadow, CSS
+        background-image, web fonts (@font-face), media queries (@media), CSS
+        animation/keyframes, dark mode (prefers-color-scheme), CSS
+        flexbox/align-items, and HTML button elements. For each feature list
+        which of these clients support it fully, partially, or not at all:
+        Gmail desktop web, Gmail iOS/Android app, Apple Mail macOS, Apple Mail
+        iOS, Outlook desktop Windows, Outlook.com web, Yahoo Mail desktop,
+        Yahoo Mail mobile.
+
+  - step: 3
+    name: "Audit the Email"
+    instruction: >
+      Before generating HTML, audit the provided copy or HTML against the
+      following client-by-client breakdown.
+    clients:
+      - name: "Gmail (desktop web + Android/iOS app)"
+        strips:
+          - "head styles in some contexts — use inline CSS as primary"
+          - "@font-face"
+          - "background-image with url() in style attribute (bug — strips entire attribute)"
+          - "CSS variables"
+          - "CSS animations"
+        supports:
+          - "inline CSS"
+          - "border-radius"
+          - "padding and margin"
+          - "basic media queries (Android app)"
+          - "max-width"
+        mobile: "Responsive via max-width + percentage widths, not true media queries on web client"
+        dark_mode: "Inverts colors on iOS, partial invert on Android — unpredictable without explicit handling"
+        key_risk: "If any style attribute contains url(), Gmail may strip the entire attribute"
+      - name: "Yahoo Mail (desktop + mobile)"
+        strips:
+          - "@font-face"
+          - "CSS animations"
+          - "box-shadow"
+          - "background-image multiple values"
+          - "CSS variables"
+        supports:
+          - "border-radius single values only (no elliptical / notation)"
+          - "inline CSS"
+          - "basic layout"
+        mobile: "Limited responsive support — use fluid/percentage widths"
+        dark_mode: "No color changes — emails render the same regardless of OS dark mode"
+        key_risk: "Class name conflicts — Yahoo sometimes adds its own classes that override yours"
+      - name: "Hotmail / Outlook.com (web)"
+        strips:
+          - "@font-face on some builds"
+          - "some advanced CSS"
+        supports:
+          - "border-radius"
+          - "box-shadow (as of 2023)"
+          - "media queries"
+          - "inline CSS"
+        mobile: "Good responsive support via media queries"
+        dark_mode: "Partial invert — supports [data-ogsc] prefixed styles for targeting"
+        key_risk: "More permissive than desktop Outlook, but still strips some properties"
+      - name: "Outlook Desktop Windows (2016, 2019, 2021, 365)"
+        rendering_engine: "Word/WordML — not a browser"
+        does_not_support:
+          - "CSS flexbox and grid"
+          - "border-radius"
+          - "background-image"
+          - "box-shadow"
+          - "@font-face"
+          - "CSS animations"
+          - "video element"
+          - "hover states"
+          - "position"
+          - "most pseudo-classes"
+        requires:
+          - "Table-based layout — no divs for structure"
+          - "MSO conditional comments"
+          - "VML for background images and rounded buttons"
+          - "Explicit width and height attributes on all images"
+          - "mso- properties for spacing"
+          - "mso-line-height-rule: exactly on all text elements"
+          - "DPI fix via OfficeDocumentSettings XML in head"
+        mobile: "Outlook mobile app is separate and more capable — supports media queries"
+        dark_mode: "Full color invert — use VML gradients and MSO-specific hacks"
+      - name: "Apple Mail (macOS + iOS)"
+        supports:
+          - "Nearly everything — CSS animations, @font-face, border-radius, box-shadow"
+          - "background-image, media queries, flexbox (partial)"
+          - "dark mode via @media (prefers-color-scheme: dark)"
+        dark_mode: "Full control — opt in with meta name=color-scheme and use media queries"
+        key_risk: "Pure white #ffffff backgrounds will be auto-inverted in dark mode unless explicitly handled"
+
+  - step: 4
+    name: "Generate Client-Safe HTML"
+    instruction: >
+      Produce a complete, production-ready HTML email. Include inline comments
+      on every technique explaining why it is used. Apply these mandatory
+      patterns:
+    mandatory_patterns:
+      outlook_dpi_fix: |
+        Add to head inside <!--[if gte mso 9]--> conditional:
+        <xml><o:OfficeDocumentSettings><o:AllowPNG/>
+        <o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+      vml_button: |
+        Every CTA button needs a VML fallback inside <!--[if mso]--> for
+        rounded buttons in Outlook, with the standard HTML/CSS version wrapped
+        in <!--[if !mso]><!-->...<!--<![endif]-->
+      dark_mode_meta: |
+        <meta name="color-scheme" content="light dark">
+        <meta name="supported-color-schemes" content="light dark">
+      preview_text_padding: |
+        Pad preview text div with &nbsp;&zwnj; repeating to 80–100 total
+        characters to prevent inbox clients pulling body copy into the snippet
+      mso_line_height: |
+        Add mso-line-height-rule: exactly to every p and heading element
+      image_sizing: |
+        Every img must have both a width HTML attribute AND a CSS width style —
+        Outlook uses the attribute, modern clients use the style
+      structure: "600px centered, table-based wrapper — no div-only layout"
+      font_stack: "Arial, Helvetica, sans-serif — never rely on web fonts as primary"
+      dark_mode_classes: |
+        Define .dark-bg, .dark-text, .dark-button in @media prefers-color-scheme dark
+        Define [data-ogsc] variants of the same classes for Outlook.com
+
+  - step: 5
+    name: "Generate the Compatibility Checklist"
+    instruction: >
+      After delivering the HTML, output a per-client checklist covering every
+      item from the audit in Step 3. Use checkmarks for items that pass and
+      warning symbols for items that need manual testing or have known
+      limitations. Cover: Gmail, Yahoo, Hotmail/Outlook.com, Outlook Desktop
+      Windows, Apple Mail, and Mobile (all clients).
+
+  - step: 6
+    name: "Preview Tool Guide"
+    free_tools:
+      - name: "Testi.at"
+        url: "https://testi.at"
+        use: "Free screenshots across 50+ client/device combos — no account needed for basic use"
+      - name: "Putsmail"
+        url: "https://putsmail.com"
+        use: "Sends a test email to any address — paste HTML and send to yourself"
+      - name: "Mail Tester"
+        url: "https://www.mail-tester.com"
+        use: "Spam score check and deliverability audit"
+      - name: "Can I Email"
+        url: "https://www.caniemail.com"
+        use: "Look up any CSS/HTML property and see which clients support it"
+    paid_tools:
+      - name: "Litmus"
+        url: "https://litmus.com"
+        use: "100+ client previews including Outlook desktop, Apple Mail, all mobile. Industry standard."
+      - name: "Email on Acid"
+        url: "https://www.emailonacid.com"
+        use: "Similar to Litmus, sometimes faster rendering. Good for Outlook testing."
+    manual_free_methods:
+      - client: "Gmail desktop"
+        method: "Paste HTML into a draft using a browser extension like Insert HTML into Gmail"
+      - client: "Apple Mail"
+        method: "Save as email.html, open in Safari, then File → Mail Contents of This Page"
+      - client: "Outlook desktop"
+        method: "Open Outlook → New Email → Insert → Object → HTML File"
+      - client: "iPhone / iOS Mail"
+        method: "Send yourself a test from Putsmail and open on device"
+      - client: "Android Gmail"
+        method: "Send from Putsmail → open on Android phone"
+      - client: "Dark mode (Apple Mail)"
+        method: "System Preferences → Appearance → Dark, then open the test email"
+
+  - step: 7
+    name: "Offer Fixes and Variants"
+    variants:
+      - "Outlook-only version — fully VML/table-locked with zero modern CSS, maximum Outlook safety"
+      - "Dark mode enhanced version — full light/dark treatment for Apple Mail, Outlook.com, and Gmail"
+      - "Mobile-first version — single column, 100% width, larger tap targets, optimised for phone preview"
+      - "Plain text version — stripped companion for deliverability (ESPs recommend sending both HTML + plain text)"
+      - "Humanic-ready paste — formatted to drop directly into Humanic's campaign editor"
+
+rules:
+  - "Always generate fully inline CSS as the primary styling method — head styles are a bonus layer, not the foundation"
+  - "Always include MSO conditional comments — even simple emails break in Outlook desktop without them"
+  - "The VML button is mandatory for every email with a CTA — it is the only way to get rounded buttons in Outlook Windows"
+  - "Never use CSS flexbox or grid as the structural layout — tables only, with flexbox as an optional enhancement wrapped in <!--[if !mso]><!-->"
+  - "Always include mso-line-height-rule: exactly on every p and heading element"
+  - "Preview text must be padded with &zwnj; characters to 80–100 total length"
+  - "Images must have both a width HTML attribute AND a CSS width style"
+  - "Dark mode: Apple Mail = @media prefers-color-scheme dark | Outlook.com = [data-ogsc] prefix | Gmail = mix-blend-mode | Yahoo = no action needed"
+  - "The unsubscribe link is not optional — include it in every email footer"

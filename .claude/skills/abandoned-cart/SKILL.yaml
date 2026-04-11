@@ -1,0 +1,143 @@
+name: abandoned-cart
+version: "1.1.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Generates a high-converting abandoned cart email grounded in live examples
+    from Really Good Emails, Good Email Copy, Email Love, and Litmus — matched
+    to the brand in session.
+  trigger_phrases:
+    - "write an abandoned cart email"
+    - "create a cart recovery email"
+    - "abandoned cart sequence"
+    - "recover lost carts"
+    - "cart abandonment email"
+    - "recover abandoned carts"
+    - "cart recovery campaign"
+  when_to_use: >
+    Use this skill when the user wants to recover shoppers or users who added
+    something to a cart, started a checkout, or began a purchase flow and did
+    not complete it. It fetches live examples from five sources, scores them
+    against the brand, selects the top 5, and writes a complete cart recovery
+    email with subject lines, preview text, body, CTA, and an Inspiration Map.
+
+instructions:
+  - step: 1
+    name: "Load Brand Context"
+    content: |
+      Check if a brand brief is already in session context.
+      - If yes: note the company name, ICP, product category, brand voice,
+        and key differentiators.
+      - If no: ask the user to run /brand-brief first, or collect minimum
+        viable context:
+          - Product name and one sentence on who buys it
+          - Brand tone (formal / casual / playful / bold)
+          - Is an incentive available? (discount / free shipping / bundle / none)
+          - Is this a single product, a cart of multiple items, or a SaaS signup?
+
+  - step: 2
+    name: "Fetch Live Abandoned Cart Examples"
+    instruction: >
+      Use the WebFetch tool to retrieve examples from all five sources in
+      parallel. Do not skip any source.
+    sources:
+      - id: 1
+        name: "Really Good Emails — Abandoned Cart Category"
+        url: "https://reallygoodemails.com/categories/abandoned-cart"
+        role: "Curated cart abandonment examples — live and current"
+        prompt: >
+          List every abandoned cart email. For each extract: brand name, email
+          subject line or title, product category, notable copy or hooks used,
+          urgency/incentive tactics, personalization techniques, CTA copy, and
+          what makes it an effective cart recovery email.
+      - id: 2
+        name: "Really Good Email Awards 2025"
+        url: "https://reallygoodemails.com/school/really-good-email-awards-2025"
+        role: "Best-in-class benchmarks — cart abandonment award winner and HMs"
+        prompt: >
+          List every award winner and honorable mention. Extract: brand name,
+          award category, email type, subject line, notable copy techniques,
+          and what made it award-worthy. Focus on cart abandonment, retention,
+          and win-back categories.
+      - id: 3
+        name: "Good Email Copy"
+        url: "https://www.goodemailcopy.com/"
+        role: "Copy patterns — urgency hooks, opening lines, incentive framing"
+        prompt: >
+          List every email example. For each extract: brand name, email type,
+          the opening line or hook, structural copy pattern, urgency or incentive
+          framing used, and what makes the copy effective. Focus on cart
+          recovery, purchase nudge, and conversion emails.
+      - id: 4
+        name: "Email Love"
+        url: "https://emaillove.co/"
+        role: "Design and layout reference — product imagery, CTA style, urgency signals"
+        prompt: >
+          List every abandoned cart, cart recovery, or purchase-nudge email.
+          For each extract: brand name, industry/category, visual design approach
+          (product imagery, layout, CTA style), urgency signals used in design,
+          and what makes this visually effective for cart recovery.
+      - id: 5
+        name: "Litmus Blog"
+        url: "https://www.litmus.com/blog/"
+        role: "Benchmark data — cart recovery rates, timing, evidence-backed tactics"
+        prompt: >
+          Find articles about abandoned cart email benchmarks, cart recovery best
+          practices, urgency tactics, or cart abandonment statistics in 2024–2025.
+          Extract key stats, average recovery rates, timing recommendations, and
+          evidence-backed copy or design best practices.
+
+  - step: 3
+    name: "Select the Top 5 Most Relevant Examples"
+    instruction: >
+      Score each example against the brand context. Select the top 5 and for
+      each output: brand name + subject line, why it is relevant to this brand,
+      and the specific tactic or copy element worth borrowing.
+    scoring_criteria:
+      - name: "Industry match"
+        look_for: "Same or adjacent product category (apparel, SaaS, pet, beauty, furniture)"
+      - name: "ICP alignment"
+        look_for: "Tone and voice matches the brand's target customer persona"
+      - name: "Tactic relevance"
+        look_for: "Urgency, social proof, incentive, personalization — what fits this brand's positioning"
+      - name: "Funnel stage match"
+        look_for: "First reminder vs. final nudge vs. winback"
+
+  - step: 4
+    name: "Write the Abandoned Cart Email"
+    output_format: |
+      SUBJECT LINE OPTIONS (3 variants):
+      1. [Direct / urgency angle]
+      2. [Curiosity / question angle]
+      3. [Benefit / incentive angle]
+
+      PREVIEW TEXT:
+      [One line that complements the subject — not a repeat]
+
+      BODY:
+      [Opening hook — 1–2 sentences acknowledging the cart without being pushy]
+      [Product reminder block — name what they left behind and why it is worth coming back for]
+      [Value reinforcement — 1–2 sentences on brand's key differentiator or social proof]
+      [Urgency or incentive — stock scarcity / time limit / offer if applicable]
+      [CTA button copy]
+      [Soft close — optional P.S. or secondary CTA]
+    voice_rules:
+      - "Match the brand voice adjectives from the brand brief exactly"
+      - "Avoid generic 'you left something behind' clichés unless the brand is very literal/direct"
+      - "Prefer a hook that matches the brand's write-like reference from the brief"
+      - "Never invent urgency that contradicts the brand (e.g. almost sold out for a SaaS product)"
+
+  - step: 5
+    name: "Offer Variants"
+    variants:
+      - "Sequence version — 3-email drip: Day 1 reminder / Day 3 incentive / Day 7 last chance"
+      - "SMS companion — 1 short text message to pair with the email"
+      - "Subject line A/B test — 2 additional subject variants to split test"
+
+rules:
+  - "Always fetch live from all five sources in parallel — the pre-researched pool is a fallback only"
+  - "Source roles: RGE cart = curated cart examples | RGE awards = best-in-class benchmarks | Good Email Copy = hooks and urgency patterns | Email Love = design/layout | Litmus = benchmark data and recovery rate stats"
+  - "Always show which real-world examples influenced the output and why"
+  - "Never invent urgency that contradicts the brand (e.g. almost sold out for a SaaS product)"
+  - "If no brand brief is loaded, collect minimum viable context: product name, who buys it, brand tone"

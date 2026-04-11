@@ -1,0 +1,266 @@
+name: welcome-series
+version: "1.1.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Generates a tailored welcome email series grounded in live examples from
+    Really Good Emails, Good Email Copy, Email Love, and Litmus — matched to
+    the brand in session.
+  trigger_phrases:
+    - "write a welcome email"
+    - "create a welcome series"
+    - "onboarding sequence"
+    - "first email to new subscribers"
+    - "welcome new users"
+    - "onboard our users"
+    - "welcome flow"
+  when_to_use: >
+    Use this skill whenever the user wants to write the first touchpoint email
+    for a new subscriber, free-trial user, paying customer, or community member.
+    It fetches live examples from six sources, selects the top 5 most relevant
+    to the brand, and writes a complete 3-email series with timing, subject
+    lines, preview text, body, CTA, and an Inspiration Map showing the creative
+    decisions.
+
+instructions:
+  - step: 1
+    name: "Load Brand Context"
+    content: |
+      Check if a brand brief is already in session context.
+      - If yes: extract company name, ICP, product category, brand voice
+        adjectives, key differentiators, and the funnel stage this series
+        serves (new subscriber / free trial / paying customer / community join).
+      - If no: ask the user to run /brand-brief first, or collect minimum
+        viable context:
+          - Product/service name and one-line description
+          - Who signs up (persona: role, company size, goal)
+          - Brand tone (formal / casual / playful / bold / warm)
+          - What action the welcome series should drive (activation / first
+            purchase / exploration / community join)
+
+  - step: 2
+    name: "Fetch Live Welcome Email Examples"
+    instruction: >
+      Use the WebFetch tool to retrieve examples from all six sources in
+      parallel. Do not skip any source. The pre-researched pool in Step 3 is
+      a fallback only.
+    sources:
+      - id: 1
+        name: "Really Good Emails — Top Emails of 2025"
+        url: "https://reallygoodemails.com/school/top-emails-of-2025-learning"
+        role: "Trend analysis — design and copy patterns for top-performing 2025 emails"
+        prompt: >
+          Extract all design and copy trends for top-performing emails in 2025,
+          especially welcome and onboarding patterns, subject line strategies,
+          CTA approaches, and personalization techniques.
+      - id: 2
+        name: "Really Good Email Awards 2025"
+        url: "https://reallygoodemails.com/school/really-good-email-awards-2025"
+        role: "Award winners — best-in-class benchmarks across all categories"
+        prompt: >
+          List every award winner and honorable mention. For each extract:
+          brand name, award category, email type, subject line, notable copy
+          techniques, design approaches, and what made it award-worthy. Focus
+          on welcome, onboarding, thank-you, and retention categories.
+      - id: 3
+        name: "Really Good Emails — Welcome Category"
+        url: "https://reallygoodemails.com/categories/welcome"
+        role: "Curated welcome email examples — live and current"
+        prompt: >
+          List every welcome email on this page. For each extract: brand name,
+          subject line, product category/industry, opening hook, value
+          proposition, CTA, personalization techniques, and what makes it a
+          strong welcome email.
+      - id: 4
+        name: "Good Email Copy"
+        url: "https://www.goodemailcopy.com/"
+        role: "Copy patterns — hooks, structural patterns, opening lines"
+        prompt: >
+          List every email example. For each extract: brand name, email type,
+          the opening line or hook, the core copy technique or structural
+          pattern, and what makes the copy effective. Focus on welcome,
+          onboarding, and activation emails.
+      - id: 5
+        name: "Email Love"
+        url: "https://emaillove.co/"
+        role: "Design and layout reference — visual and structural inspiration"
+        prompt: >
+          List every welcome or onboarding email. For each extract: brand name,
+          industry/category, visual design approach, layout technique, CTA
+          style, and what makes this a visually effective email.
+      - id: 6
+        name: "Litmus Blog"
+        url: "https://www.litmus.com/blog/"
+        role: "Benchmarks and data — stats to ground the copy in evidence"
+        prompt: >
+          Find articles about welcome email benchmarks, onboarding email best
+          practices, open rates for welcome emails, or email design trends in
+          2024–2025. Extract key statistics, benchmark data, and
+          evidence-backed best practices.
+
+  - step: 3
+    name: "Select the Top 5 Most Relevant Examples"
+    instruction: >
+      Combine all examples from all six sources into a unified pool. Score
+      each against the brand context on these criteria, then select the top 5.
+    scoring_criteria:
+      - name: "Industry / category match"
+        look_for: "Same or adjacent vertical (SaaS, e-commerce, health, media, B2B, nonprofit)"
+      - name: "ICP alignment"
+        look_for: "Tone and voice matches the brand's target persona"
+      - name: "Funnel goal match"
+        look_for: "Does this example drive the same action the brand needs?"
+      - name: "Copy technique relevance"
+        look_for: "'So you can' structure, noticing effect, identity framing, specificity"
+      - name: "2025 trend alignment"
+        look_for: "Emotional orientation, identity-first, delayed feature explanation"
+    reference_pool:
+      award_winners:
+        - brand: "Claude (Anthropic)"
+          award: "Best Welcome Email 2025"
+          tactic: "Animated GIF showing product, use case bullets, Start your first chat CTA, multi-touch series"
+          best_for: "SaaS, productivity tools, AI products"
+        - brand: "FlavCity"
+          award: "Welcome Honorable Mention"
+          tactic: "Live text + graphics + subtle animations, Better Choices Start Here"
+          best_for: "Health, wellness, food e-commerce"
+        - brand: "Monday"
+          award: "Welcome Honorable Mention"
+          tactic: "'So you can' copywriting, emphasises reader benefits over product features"
+          best_for: "B2B SaaS, project management, team tools"
+        - brand: "Attentive"
+          award: "Best Thank You"
+          tactic: "Sneak peek of value, menu-style resource links ranked by popularity, numerical specificity"
+          best_for: "Marketing SaaS, content-rich products"
+        - brand: "Apple"
+          award: "Best Win-Back"
+          tactic: "Loss aversion subject + aspirational body, positions offer as gift not pitch"
+          best_for: "Premium brands, subscription products"
+        - brand: "Charity: Water"
+          award: "Best Nonprofit"
+          tactic: "Typography as design, congratulates reader for participation, frames them as valued partner"
+          best_for: "Nonprofits, cause brands, community platforms"
+      welcome_category_standouts:
+        - brand: "Figma"
+          tactic: "Educational feature intro, collaborative design platform"
+          best_for: "B2B SaaS, design tools"
+        - brand: "DoorDash"
+          tactic: "Celebratory welcome + immediate discount, Hey you made it 🥂"
+          best_for: "Consumer apps, food, delivery, e-commerce"
+        - brand: "Dense Discovery"
+          tactic: "Editorial voice, mission-driven, finding signal in the noise"
+          best_for: "Newsletter, media, curator brands"
+        - brand: "Youth Crews"
+          tactic: "Founder personal story, emotional connection, mission alignment"
+          best_for: "Mission-driven e-commerce, health, disability brands"
+        - brand: "Lyka"
+          tactic: "Community language (welcome to the pack), step-by-step onboarding"
+          best_for: "Pet, subscription, community-forward brands"
+        - brand: "Lifesum"
+          tactic: "Tracking that fits real life, realistic benefit messaging"
+          best_for: "Health, fitness, habit apps"
+        - brand: "Shutterstock"
+          tactic: "Professional B2B welcome, platform exploration, creative services"
+          best_for: "B2B platforms, creative tools"
+        - brand: "Sydney Opera House"
+          tactic: "You've joined at an exciting time, event-forward"
+          best_for: "Arts, culture, events, ticketing"
+        - brand: "Netflix"
+          tactic: "Direct activation focus, clear next step"
+          best_for: "Streaming, entertainment, content subscriptions"
+        - brand: "MoMA"
+          tactic: "Institutional authority, cultural value"
+          best_for: "Nonprofits, museums, education"
+    trends_2025:
+      - "Welcome emails as emotional orientation — not feature catalogues"
+      - "Identity-focused framing: You're in / Welcome to the family / You're one of us now"
+      - "Delayed feature explanation — lead with feeling, then show what's possible"
+      - "'So you can' structure — benefit clarity without jargon"
+      - "Specificity over vague promises — 42 ideas not great things ahead"
+      - "One idea per viewport — controlled hierarchy, white space, calm typography"
+      - "Live text over image-only layouts for accessibility and dark mode"
+    output_per_example: |
+      For each of the 5 selected examples output:
+      - Brand name + email title/subject
+      - Why it is relevant to this specific brand
+      - The precise tactic or copy element worth borrowing
+
+  - step: 4
+    name: "Write the Welcome Series"
+    default_length: 3
+    note: "Default to 3 emails unless the user specifies otherwise."
+    series_architecture:
+      - email: 1
+        timing: "Immediately on signup"
+        purpose: "Emotional orientation — make them feel they made the right call"
+        tone: "Warm, identity-first, zero pressure"
+      - email: 2
+        timing: "Day 2–3"
+        purpose: "Value delivery — show the one thing that will matter most to them"
+        tone: "Helpful, specific, educational"
+      - email: 3
+        timing: "Day 5–7"
+        purpose: "Activation nudge — drive the first meaningful action or conversion"
+        tone: "Direct, encouraging, one clear ask"
+    output_format: |
+      Repeat this block for each email in the series:
+
+      ═══════════════════════════════════════
+      EMAIL [N] — [Purpose label]
+      Send timing: [e.g., Immediately / Day 3 / Day 7]
+      ═══════════════════════════════════════
+
+      SUBJECT LINE OPTIONS (3 variants):
+      1. [Identity/belonging angle]
+      2. [Benefit/value angle]
+      3. [Curiosity/specificity angle]
+
+      PREVIEW TEXT:
+      [One line that complements the subject — not a repeat]
+
+      BODY:
+      [Opening hook — 1–2 sentences mirroring where the reader is right now]
+      [Core message — the one thing this email needs to say, using "so you can" where possible]
+      [Proof — one stat, customer outcome, or social proof beat. 1–2 sentences max]
+      [CTA — one primary action. Short button copy: 2–4 words max]
+      [Optional P.S. — secondary resource, human moment, or forward-look to next email]
+    voice_rules:
+      - "Match the brand voice adjectives from the brand brief exactly"
+      - "Apply the 2025 noticing effect — mirror the reader's internal state before making claims"
+      - "Avoid: welcome aboard platitudes, feature dumps, vague exciting things ahead language"
+      - "Prefer: specificity, identity framing, one clear idea per email"
+      - "Never add urgency tactics (scarcity, countdown) to Email 1 — trust comes first"
+    defaults_by_category:
+      saas_or_app: "Activation-focused — account setup → key feature → first win"
+      ecommerce: "Brand story → bestsellers → first purchase incentive"
+      media_newsletter: "Editor voice → what to expect → community invitation"
+
+  - step: 5
+    name: "Show the Inspiration Map"
+    mandatory: true
+    output_format: |
+      INSPIRATION MAP
+      ───────────────
+      Email 1 borrowed: [Brand] — [specific tactic]
+      Email 2 borrowed: [Brand] — [specific tactic]
+      Email 3 borrowed: [Brand] — [specific tactic]
+
+      2025 trends applied:
+      - [Trend name]: [how it showed up in the copy]
+      - [Trend name]: [how it showed up in the copy]
+
+  - step: 6
+    name: "Offer Variants and Extensions"
+    variants:
+      - "5-email extended series — adds Day 10 social proof + Day 14 activation checkpoint"
+      - "Subject line A/B tests — 2 additional variants per email for split testing"
+      - "Plain-text versions — stripped copy for deliverability-first senders"
+      - "Humanic-ready format — campaign steps ready to paste into Humanic AI with cohort suggestions and trigger logic"
+
+rules:
+  - "Always fetch live from all six sources in parallel — the pre-researched pool is a fallback only"
+  - "Source roles: RGE = visual + award context | Good Email Copy = copy hooks | Email Love = design/layout | Litmus = benchmarks and data | Milled = competitive intelligence if needed"
+  - "Always show the Inspiration Map — never deliver copy without attribution"
+  - "Never generate Email 1 with hard-sell copy — trust is built before conversion is asked for"
+  - "If no brand brief is loaded, collect minimum viable context before proceeding"

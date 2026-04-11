@@ -1,0 +1,108 @@
+name: templates
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Browses, selects, and applies the prompt templates in this repository to
+    generate marketing content — grounded in brand context and organised by
+    module and channel.
+  trigger_phrases:
+    - "use a template"
+    - "apply a template"
+    - "list templates"
+    - "show me the template for"
+    - "what templates are available"
+    - "create from template"
+    - "use the template"
+  when_to_use: >
+    Use this skill when the user wants to browse available prompt templates,
+    apply an existing template to generate a marketing asset, or save a new
+    template. Also activates when the user references a specific module folder
+    (e.g. 01-email-basics, 07-ads) and wants to generate output from it.
+
+module_map:
+  - module: "00"
+    folder: "00-brand-brief/prompts/"
+    description: "Charlie-style brand brief — the foundation everything else inherits"
+  - module: "01"
+    folder: "01-email-basics/prompts/"
+    description: "One-shot, few-shot, and role-based email copy"
+  - module: "02"
+    folder: "02-email-headers/prompts/"
+    description: "Image/video email header briefs"
+  - module: "03"
+    folder: "03-email-sequences/prompts/"
+    description: "Multi-step nurture sequences as a complex chained task"
+  - module: "04"
+    folder: "04-cold-email-instantly/prompts/"
+    description: "Cold outreach copy → Instantly.ai campaign upload"
+  - module: "05"
+    folder: "05-lifecycle-humanic/prompts/"
+    description: "Lifecycle email triggers → Humanic integration"
+  - module: "06"
+    folder: "06-aeo/prompts/"
+    description: "Answer Engine Optimization — structure content for AI search"
+  - module: "07"
+    folder: "07-ads/prompts/"
+    description: "Google Search / PMax + Meta ad creative copy"
+  - module: "08"
+    folder: "08-blog-substack/prompts/"
+    description: "Long-form blog posts and Substack newsletter editions"
+  - module: "09"
+    folder: "09-website/prompts/"
+    description: "Landing page copy, hero sections, CTA variants"
+  - module: "10"
+    folder: "10-social/prompts/"
+    description: "Instagram captions, TikTok scripts, social ad briefs"
+  - module: "11"
+    folder: "11-youtube/prompts/"
+    description: "Video scripts, titles, descriptions, thumbnail copy"
+  - module: "12"
+    folder: "12-reddit/prompts/"
+    description: "Subreddit strategy, authentic post and comment templates"
+  - module: "13"
+    folder: "13-linkedin/prompts/"
+    description: "Thought leadership, company posts, carousel copy"
+
+template_structure:
+  required_sections:
+    - "## Role / Context"
+    - "## Task"
+    - "## Format"
+    - "## Constraints"
+  optional_sections:
+    - "## Example Input → Output  (for few-shot files only)"
+
+instructions:
+  - step: 1
+    name: "Apply a Template"
+    when: "User asks to use or apply a template"
+    actions:
+      - "Check if a brand brief is already in session. If not, prompt the user to run /brand-brief first."
+      - "Match the user's request to the correct module in the module map above."
+      - "Read the relevant prompt file(s) from the module's prompts/ folder."
+      - "Substitute brand voice, ICP, product details, and any user-supplied specifics into the prompt structure."
+      - "Generate the marketing asset following the template's Format and Constraints sections."
+      - "After output, ask if they want to refine tone, length, CTA, or try a variant."
+
+  - step: 2
+    name: "List Templates"
+    when: "User asks 'what templates are available' or 'list templates'"
+    actions:
+      - "Read the prompts/ directory of the relevant module (or all modules if unspecified)."
+      - "Return a concise list of file names with a one-line description of each."
+
+  - step: 3
+    name: "Create a New Template"
+    when: "User wants to save a new template"
+    actions:
+      - "Identify the appropriate module folder from the module map."
+      - "Create a new .md file in that module's prompts/ folder using the required section structure."
+      - "Confirm the file path to the user."
+
+rules:
+  - "Brand brief first — never generate content without brand context loaded"
+  - "Prompts are the product — preserve the template structure; do not collapse sections"
+  - "Iterate, don't restart — use Claude's session context to refine, not regenerate from scratch"
+  - "Show the chain — for sequence templates, show each step's reasoning, not just the final output"

@@ -1,0 +1,259 @@
+name: re-engagement
+version: "1.1.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Generates a complete re-engagement campaign grounded in live examples from
+    Really Good Emails, Good Email Copy, Email Love, and Litmus — matched to
+    the brand voice and ICP so lapsed users feel seen, not spammed.
+  trigger_phrases:
+    - "write a re-engagement email"
+    - "win back inactive users"
+    - "re-activate lapsed customers"
+    - "bring back subscribers who went quiet"
+    - "re-engagement campaign"
+    - "win-back sequence"
+    - "inactive subscribers"
+    - "lapsed users"
+  when_to_use: >
+    Use this skill when the user wants to re-activate contacts who have stopped
+    engaging — whether that means not opening emails, not logging into an app,
+    not purchasing, or not returning to the platform. It fetches live examples
+    from five sources, scores them against the brand and ICP, selects the top 5,
+    and writes a 3-email sequence with a mandatory graceful exit in Email 3.
+
+instructions:
+  - step: 1
+    name: "Load Brand Context"
+    content: |
+      Check if a brand brief is already in session context.
+      - If yes: extract company name, ICP, product category, brand voice
+        adjectives, key differentiators, and any known reason users go quiet
+        (complexity, price, competitor, life change, seasonal).
+      - If no: ask the user to run /brand-brief first, or collect minimum
+        viable context:
+          - Product/service name and one-line description
+          - Who the lapsed user is (persona, role, company size, original goal)
+          - How long they have been inactive (30 / 60 / 90+ days)
+          - Brand tone (warm / bold / playful / professional / empathetic)
+          - What action the campaign should drive (return to app / repurchase /
+            resubscribe / complete profile)
+    also_ask:
+      - "Is there an incentive available? (discount / free feature / bonus content / none)"
+      - "Is this B2C or B2B? (shapes urgency and tone significantly)"
+
+  - step: 2
+    name: "Fetch Live Re-Engagement Examples"
+    instruction: >
+      Use the WebFetch tool to retrieve examples from all five sources in
+      parallel. Do not skip any source.
+    sources:
+      - id: 1
+        name: "Really Good Emails — Engagement Category"
+        url: "https://reallygoodemails.com/categories/engagement"
+        role: "Curated engagement and re-engagement email examples"
+        prompt: >
+          List every email example. For each extract: brand name, subject line,
+          product category/industry, opening hook, re-engagement tactic used
+          (behavioral data recap / feature education / curiosity teaser /
+          guilt-free check-in / exclusive access / seasonal relevance /
+          social proof / impact visualization), CTA, personalization techniques,
+          tone and voice, and what makes it an effective re-engagement email.
+      - id: 2
+        name: "Really Good Email Awards 2025"
+        url: "https://reallygoodemails.com/school/really-good-email-awards-2025"
+        role: "Best-in-class benchmarks — win-back and retention award winners"
+        prompt: >
+          List every award winner and honorable mention. Extract: brand name,
+          award category, email type, subject line, notable copy techniques,
+          design approaches, and what made it award-worthy. Focus on retention,
+          win-back, re-engagement, and thank-you categories.
+      - id: 3
+        name: "Good Email Copy"
+        url: "https://www.goodemailcopy.com/"
+        role: "Copy patterns — hooks, opening lines, structural patterns"
+        prompt: >
+          List every email example. For each extract: brand name, email type,
+          the opening line or hook, the structural copy pattern, and what makes
+          the copy effective. Focus on re-engagement, win-back, and retention
+          emails.
+      - id: 4
+        name: "Email Love"
+        url: "https://emaillove.co/"
+        role: "Design and layout reference for re-engagement"
+        prompt: >
+          List every re-engagement, win-back, or retention email. For each
+          extract: brand name, industry/category, visual design approach, layout
+          technique, tone conveyed by design, and what makes this visually
+          effective for re-engagement.
+      - id: 5
+        name: "Litmus Blog"
+        url: "https://www.litmus.com/blog/"
+        role: "Benchmark data and stats to ground the copy in evidence"
+        prompt: >
+          Find articles about re-engagement email benchmarks, win-back campaign
+          best practices, inactive subscriber strategies, or list hygiene data
+          in 2024–2025. Extract key statistics, benchmark open/click rates, and
+          evidence-backed best practices.
+
+  - step: 3
+    name: "Select the Top 5 Most Relevant Examples"
+    instruction: >
+      Score each example against the brand context. Select the top 5 and for
+      each output: brand name + subject line, why it is relevant to this brand
+      and its lapsed users, and the precise tactic or copy element worth
+      borrowing.
+    scoring_criteria:
+      - name: "Industry / category match"
+        look_for: "Same or adjacent vertical"
+      - name: "ICP alignment"
+        look_for: "Does the tone and tactic match the lapsed user's persona and original motivation?"
+      - name: "Re-engagement tactic fit"
+        look_for: "Data recaps for analytics tools / lifestyle for consumer / exclusivity for premium brands"
+      - name: "Brand voice match"
+        look_for: "Copy style, humor level, and formality align with the brand's voice adjectives"
+      - name: "Funnel / action alignment"
+        look_for: "Does this example drive the same action the brand needs?"
+    reference_pool:
+      - brand: "Resy"
+        industry: "Dining / App"
+        tactic: "Personalized behavioral recap (Your 2025 Resy Recap)"
+        best_for: "Apps with usage data, loyalty programs"
+      - brand: "LinkedIn"
+        industry: "B2B / Social"
+        tactic: "Quantified social proof (your posts got 60,175 views)"
+        best_for: "SaaS, productivity tools, creator platforms"
+      - brand: "HeyGen"
+        industry: "SaaS / AI"
+        tactic: "Skill-gap + webinar (Most people use Video Agent wrong)"
+        best_for: "SaaS, complex tools, onboarding-heavy products"
+      - brand: "Typeform"
+        industry: "SaaS"
+        tactic: "Feature education (Did you know you could do this?)"
+        best_for: "SaaS tools with underused features"
+      - brand: "Hatch"
+        industry: "SaaS / Product"
+        tactic: "Exclusive beta access announcement"
+        best_for: "Product-led growth, innovation-forward brands"
+      - brand: "Change.org"
+        industry: "Nonprofit"
+        tactic: "Impact visualization (see the change you created)"
+        best_for: "Nonprofits, community platforms, cause brands"
+      - brand: "Cleo"
+        industry: "Fintech"
+        tactic: "Sassy brand voice re-engagement"
+        best_for: "Consumer apps with strong brand personality"
+      - brand: "Fratelli Burgio"
+        industry: "Food / E-commerce"
+        tactic: "Guilt-free tell us about yourself re-activation"
+        best_for: "E-commerce, subscription, preference-based products"
+      - brand: "Lush"
+        industry: "Beauty"
+        tactic: "Values-aligned social impact content"
+        best_for: "Mission-driven brands, B2C with community focus"
+      - brand: "Turo"
+        industry: "Travel"
+        tactic: "Lifestyle reframe with seasonal timing"
+        best_for: "Travel, experience, lifestyle consumer brands"
+      - brand: "AllTrails"
+        industry: "Outdoors"
+        tactic: "Curated seasonal content, location-based"
+        best_for: "Subscription apps, content platforms, hobbyist communities"
+      - brand: "Ka'chava"
+        industry: "Wellness"
+        tactic: "Ingredient education with health focus"
+        best_for: "Health, wellness, food, supplement brands"
+      - brand: "GoFundMe"
+        industry: "Nonprofit"
+        tactic: "Platform updates with mission reinforcement"
+        best_for: "Nonprofits, community platforms, cause-adjacent SaaS"
+      - brand: "Brooklyn Museum"
+        industry: "Arts / Events"
+        tactic: "Urgency through limited ticket availability"
+        best_for: "Events, ticketing, cultural institutions"
+      - brand: "Employ"
+        industry: "B2B / HR"
+        tactic: "Demo request with benefit-led copy"
+        best_for: "B2B SaaS, enterprise tools"
+
+  - step: 4
+    name: "Write the Re-Engagement Campaign"
+    default_length: 3
+    campaign_architecture:
+      - email: 1
+        timing: "Day 0 — triggered by X days of inactivity"
+        purpose: "Soft check-in — acknowledge absence without guilt, restate value"
+        tone: "Warm, curious, zero pressure"
+      - email: 2
+        timing: "Day 4–5 after Email 1"
+        purpose: "Value reminder — show what they are missing, surface the most relevant feature or benefit"
+        tone: "Helpful, specific, slightly urgent"
+      - email: 3
+        timing: "Day 8–10 after Email 1"
+        purpose: "Final nudge — clearest ask, strongest incentive, honest last email framing"
+        tone: "Direct, respectful, door-open close"
+    output_format: |
+      Repeat this block for each email in the sequence:
+
+      ═══════════════════════════════════════
+      EMAIL [N] — [Purpose label]
+      Trigger / Send timing: [e.g., 30 days inactive / Day 4 after Email 1]
+      ═══════════════════════════════════════
+
+      SUBJECT LINE OPTIONS (3 variants):
+      1. [Soft / curiosity angle — no pressure]
+      2. [Value / benefit angle — what they are missing]
+      3. [Direct / honest angle — acknowledge the gap]
+
+      PREVIEW TEXT:
+      [One line that adds context or intrigue — not a repeat of the subject]
+
+      BODY:
+      [Opening hook — mirror where the user is: busy, overwhelmed, moved on — without guilt]
+      [Core message — the single most compelling reason to come back]
+      [Proof — one specific stat, quote, or outcome showing others like them returned and won]
+      [CTA — one primary action. Short button copy: 2–4 words]
+      [P.S. — Email 1: forward-look | Email 2: secondary resource | Email 3: graceful exit option]
+    voice_rules:
+      - "Match the brand voice adjectives from the brand brief exactly"
+      - "Email 1 must never feel like a complaint about absence — open the door, do not guilt-trip"
+      - "Email 3 must include an honest door-open close — give the user a graceful exit or pause option"
+      - "Avoid 'We miss you!' clichés unless the brand is explicitly warm/playful and it fits voice"
+      - "For B2B: lead with outcomes and ROI — not emotion"
+      - "For B2C: lead with feeling and identity — then product"
+
+  - step: 5
+    name: "Show the Inspiration Map"
+    mandatory: true
+    output_format: |
+      INSPIRATION MAP
+      ───────────────
+      Email 1 borrowed: [Brand] — [specific tactic and why]
+      Email 2 borrowed: [Brand] — [specific tactic and why]
+      Email 3 borrowed: [Brand] — [specific tactic and why]
+
+      Re-engagement patterns applied:
+      - [Pattern name]: [how it appeared in the copy]
+      - [Pattern name]: [how it appeared in the copy]
+
+      Tactic avoided (and why):
+      - [e.g., Guilt-trip opener — brand voice is empathetic, not pushy]
+
+  - step: 6
+    name: "Offer Variants and Extensions"
+    variants:
+      - "Sunset extension — a 4th farewell email for non-responders with unsubscribe/pause framing to clean the list"
+      - "Subject line A/B tests — 2 additional subject variants per email for split testing"
+      - "SMS companion messages — 1 short text per email for multichannel re-engagement"
+      - "Humanic-ready format — campaign steps with cohort definition (contacts with no activity in 30+ days) and trigger logic"
+
+rules:
+  - "Always fetch live from all five sources in parallel — the pre-researched pool is a fallback only"
+  - "Source roles: RGE engagement = curated examples | RGE awards = best-in-class benchmarks | Good Email Copy = hooks and structure | Email Love = design/layout | Litmus = benchmark data"
+  - "Always show the Inspiration Map — never deliver copy without attribution"
+  - "Email 1 tone must be warm and pressure-free — never open with urgency or a hard sell"
+  - "Email 3 must always include a graceful exit option — list health matters as much as re-activation rate"
+  - "If no incentive is available, lean harder on value reminders, social proof, and behavioral data"
+  - "If the brand has usage/behavioral data on the lapsed user, surface it — personalized recaps dramatically outperform generic re-engagement"
+  - "Never fabricate urgency (e.g. your account will be deleted) unless the brand actually implements this"

@@ -1,0 +1,350 @@
+name: humanic-auto-claude-gemini-openai-claude-opus
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Generates the best possible email by chaining four AI models in sequence —
+    Claude Sonnet 4.6 drafts, Gemini 2.0 Flash adds creative elements, OpenAI
+    o3 evaluates and critiques, Claude Opus 4.6 synthesizes the definitive
+    final version.
+  trigger_phrases:
+    - "run the 4-model chain"
+    - "use all models"
+    - "Claude Gemini OpenAI Opus chain"
+    - "multi-model email"
+    - "AI chain email"
+    - "4 model email"
+    - "chain the models"
+    - "run all four AIs"
+  when_to_use: >
+    Use this skill when the user wants the highest-quality possible email output
+    by leveraging multiple AI models sequentially. Each model plays a distinct
+    role: Sonnet for strategic precision, Gemini for creative enhancement,
+    OpenAI o3 for analytical evaluation, and Opus for final synthesis. The
+    output at each stage becomes the input for the next. All four stage outputs
+    are shown so the user can see how the email evolved.
+  model_note: >
+    As of 2025, OpenAI's best reasoning model is o3. There is no OpenAI 5.4.
+    Update the model ID in Stage 3 when OpenAI releases newer versions.
+
+model_roles:
+  - stage: 1
+    model: "claude-sonnet-4-6"
+    role: "First draft"
+    strength: "Brand voice precision, structured copy, strategic framing"
+    temperature: "default"
+  - stage: 2
+    model: "gemini-2.0-flash"
+    role: "Creative enhancement"
+    strength: "Lateral thinking, unexpected angles, sensory language, cultural resonance"
+    temperature: 0.9
+  - stage: 3
+    model: "o3"
+    fallback_model: "gpt-4o"
+    role: "Critical evaluation"
+    strength: "Analytical reasoning, gap identification, conversion logic, A/B thinking"
+    temperature: "default (low)"
+  - stage: 4
+    model: "claude-opus-4-6"
+    role: "Final synthesis"
+    strength: "Depth, nuance, pulling the best from all prior stages into a polished definitive version"
+    temperature: "default"
+
+prerequisites:
+  env_vars:
+    - key: "ANTHROPIC_API_KEY"
+      format: "sk-ant-..."
+      used_for: "Claude Opus call in Stage 4"
+    - key: "OPENAI_API_KEY"
+      format: "sk-..."
+      used_for: "OpenAI o3 call in Stage 3"
+    - key: "GEMINI_API_KEY"
+      format: "AIza..."
+      used_for: "Gemini call in Stage 2"
+  check_command: |
+    echo "Anthropic: $ANTHROPIC_API_KEY" && echo "OpenAI: $OPENAI_API_KEY" && echo "Gemini: $GEMINI_API_KEY"
+  on_missing_key: "Stop and ask the user to add the missing key to .env before proceeding"
+
+instructions:
+  - step: 1
+    name: "Load Brand Context"
+    content: |
+      Check if a brand brief is already in session context.
+      - If yes: extract company name, ICP, brand voice adjectives, key
+        differentiators, and the email's goal (welcome / re-engagement /
+        promotional / transactional).
+      - If no: ask the user for:
+          - Company name and one-line product description
+          - Target recipient (who is this email going to?)
+          - Email goal (what should the reader feel and do after reading?)
+          - Brand tone (3 adjectives)
+          - Any constraints (word count, must-include links, required legal copy)
+
+  - step: 2
+    name: "Collect Email Brief"
+    fields:
+      - name: "type"
+        options: ["welcome", "re-engagement", "promotional", "transactional", "nurture"]
+      - name: "subject_line_goal"
+        options: ["open rate focused", "clarity focused", "curiosity focused"]
+      - name: "cta"
+        description: "What is the single action this email drives?"
+      - name: "segment"
+        description: "Who exactly is receiving this — new users / lapsed / purchased / trial"
+      - name: "key_message"
+        description: "The one thing this email must communicate"
+      - name: "tone_notes"
+        description: "Anything specific — warmer than usual / short and punchy / no emojis"
+      - name: "incentive"
+        options: ["discount", "free content", "exclusive access", "none"]
+
+  - step: 3
+    name: "Stage 1 — Claude Sonnet 4.6: First Draft"
+    role: "Structured, brand-voice-accurate first draft. The strategic foundation."
+    instruction: >
+      Claude (current model — Sonnet 4.6) generates the email directly using
+      the brand brief and email parameters collected above.
+    constraints:
+      - "Match brand voice adjectives precisely"
+      - "Apply the correct email structure for the type (welcome / re-engagement / promotional)"
+      - "Write 3 subject line variants (identity / benefit / curiosity angles)"
+      - "Write preview text (80–100 characters)"
+      - "Write a complete email body: hook → core message → proof → CTA → optional P.S."
+      - "Use 'so you can' benefit structure where possible"
+      - "One CTA only"
+      - "No filler phrases (excited to share / don't miss out / synergy)"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 1 — CLAUDE SONNET 4.6 DRAFT
+      ══════════════════════════════════════════
+
+      SUBJECT LINES:
+      1. [Identity angle]
+      2. [Benefit angle]
+      3. [Curiosity angle]
+
+      PREVIEW TEXT: [80–100 chars]
+
+      BODY:
+      [Full email copy]
+
+      SONNET NOTES:
+      - Strategic choices made: [2–3 bullet points on why certain decisions were made]
+      - Weaknesses I am aware of: [honest self-critique — what could be stronger]
+
+  - step: 4
+    name: "Stage 2 — Gemini 2.0 Flash: Creative Enhancement"
+    role: >
+      Push the creative beyond the safe first draft. Add unexpected angles,
+      sensory language, cultural hooks, and structural surprises.
+    api:
+      method: "POST"
+      url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY"
+      headers:
+        Content-Type: "application/json"
+      body_template: |
+        {
+          "system_instruction": {
+            "parts": [{
+              "text": "You are a creative email copywriter. Your job is NOT to rewrite the email completely. Enhance it — add creative elements that make it more memorable, more human, and more likely to be read. Focus on: unexpected opening hooks, sensory or visual language, cultural references that resonate with the target audience, structural surprises (short punchy sentences after long ones), and subject line creativity. Preserve the strategic intent and CTA. Return the enhanced email plus a GEMINI NOTES section explaining every creative choice you made and why."
+            }]
+          },
+          "contents": [{
+            "parts": [{
+              "text": "Here is a first-draft email. Enhance it creatively.\n\n[STAGE_1_OUTPUT]"
+            }]
+          }],
+          "generationConfig": {
+            "temperature": 0.9,
+            "maxOutputTokens": 2048
+          }
+        }
+      extract_response: "jq -r '.candidates[0].content.parts[0].text'"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 2 — GEMINI 2.0 FLASH ENHANCEMENT
+      ══════════════════════════════════════════
+
+      ENHANCED SUBJECT LINES:
+      1. [Creative variant 1]
+      2. [Creative variant 2]
+      3. [Creative variant 3]
+
+      PREVIEW TEXT: [Enhanced version]
+
+      ENHANCED BODY:
+      [Full enhanced email copy]
+
+      GEMINI NOTES:
+      - Creative additions: [bullet list of what was added and why]
+      - What was preserved from Stage 1: [what strategic elements were kept]
+      - Riskier choices: [any creative risks the user might want to dial back]
+    on_failure: >
+      Output the error, ask the user to verify GEMINI_API_KEY, then offer to
+      continue with a manual creative enhancement performed by Claude — labeled
+      STAGE 2 — CLAUDE CREATIVE MODE (Gemini unavailable).
+
+  - step: 5
+    name: "Stage 3 — OpenAI o3: Critical Evaluation"
+    role: >
+      Cold-eyed analytical review. Identify gaps in conversion logic, weak
+      copy, missing proof points, CTA friction, subject line problems, and
+      anything that would reduce open rate, click rate, or the desired action.
+    api:
+      method: "POST"
+      url: "https://api.openai.com/v1/chat/completions"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer $OPENAI_API_KEY"
+      body_template: |
+        {
+          "model": "o3",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a senior email marketing strategist and conversion rate optimizer. You are reviewing an email written by Claude Sonnet and enhanced creatively by Gemini. Do NOT rewrite the email. Produce a structured critique covering: (1) Subject line effectiveness and open rate prediction, (2) Hook strength — does the first sentence earn the second?, (3) Clarity of the core message, (4) Proof point quality — is the social proof specific and credible?, (5) CTA friction — how easy is it to take the next step?, (6) Mobile readability — how does this read on a phone?, (7) Anything missing that would make this email convert better. Score each dimension 1–10 with specific actionable improvement suggestions. End with a PRIORITY FIX LIST — the top 3 changes that would have the biggest impact on results."
+            },
+            {
+              "role": "user",
+              "content": "Here are two versions of an email — the original draft (Stage 1) and the creatively enhanced version (Stage 2). Evaluate both, note which elements from each version are strongest, and produce your full critique.\n\nSTAGE 1 DRAFT:\n[STAGE_1_OUTPUT]\n\nSTAGE 2 ENHANCED:\n[STAGE_2_OUTPUT]"
+            }
+          ]
+        }
+      extract_response: "jq -r '.choices[0].message.content'"
+      fallback_model: "gpt-4o"
+      fallback_note: >
+        If o3 is not available on your API tier, replace model with gpt-4o.
+        Update the model ID here when OpenAI releases newer versions.
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 3 — OPENAI o3 EVALUATION
+      ══════════════════════════════════════════
+
+      DIMENSION SCORES:
+      - Subject line effectiveness: [X/10] — [specific feedback]
+      - Hook strength: [X/10] — [specific feedback]
+      - Core message clarity: [X/10] — [specific feedback]
+      - Proof point quality: [X/10] — [specific feedback]
+      - CTA friction: [X/10] — [specific feedback]
+      - Mobile readability: [X/10] — [specific feedback]
+
+      BEST ELEMENTS (keep these in Stage 4):
+      - From Stage 1: [what to preserve]
+      - From Stage 2: [what to preserve]
+
+      PRIORITY FIX LIST:
+      1. [Highest impact change]
+      2. [Second highest impact change]
+      3. [Third highest impact change]
+
+      ADDITIONAL SUGGESTIONS:
+      [Any other observations]
+    on_failure: >
+      Output the error, ask the user to verify OPENAI_API_KEY, then offer to
+      perform the evaluation manually as Claude — labeled STAGE 3 — CLAUDE
+      ANALYTICAL MODE (OpenAI unavailable).
+
+  - step: 6
+    name: "Stage 4 — Claude Opus 4.6: Final Synthesis"
+    role: >
+      The master synthesizer. Read all three prior stages and write the
+      definitive final email — not a compromise, but the best possible email
+      incorporating every valid insight from all three models.
+    invocation:
+      tool: "Agent"
+      model: "opus"
+      subagent_type: "general-purpose"
+      prompt_template: |
+        You are Claude Opus, the final stage in a 4-model email generation chain.
+        You have received:
+        1. A first draft from Claude Sonnet 4.6 — strategically sound, brand-voice accurate
+        2. A creative enhancement from Gemini 2.0 Flash — with creative additions,
+           unexpected hooks, and sensory language
+        3. A critical evaluation from OpenAI o3 — with dimension scores and a priority fix list
+
+        Write the FINAL, DEFINITIVE version of this email. This is not a compromise.
+        This is the synthesis — the best possible email that:
+        - Preserves Sonnet's strategic structure and brand voice accuracy
+        - Incorporates Gemini's best creative elements (use judgment on which ones work)
+        - Fixes every issue on OpenAI's Priority Fix List
+        - Adds your own depth and nuance where you see opportunity
+
+        After the final email, output a SYNTHESIS NOTES section explaining:
+        - What you took from each model and why
+        - What you changed or rejected and why
+        - Your confidence assessment: what you would still test or iterate on
+
+        STAGE 1 — CLAUDE SONNET DRAFT:
+        [STAGE_1_OUTPUT]
+
+        STAGE 2 — GEMINI ENHANCEMENT:
+        [STAGE_2_OUTPUT]
+
+        STAGE 3 — OPENAI EVALUATION:
+        [STAGE_3_OUTPUT]
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 4 — CLAUDE OPUS 4.6 FINAL EMAIL
+      ══════════════════════════════════════════
+
+      FINAL SUBJECT LINES:
+      1. [Primary recommendation]
+      2. [A/B test variant]
+      3. [Long-shot creative variant]
+
+      FINAL PREVIEW TEXT: [80–100 chars]
+
+      FINAL EMAIL BODY:
+      [Complete, polished final email]
+
+      SYNTHESIS NOTES:
+      - From Sonnet I kept: [specific elements + reasoning]
+      - From Gemini I kept: [specific elements + reasoning]
+      - From OpenAI's critique I fixed: [specific changes made]
+      - What I added as Opus: [anything new introduced in this stage]
+      - What I would still test: [honest assessment of what remains uncertain]
+    on_failure: >
+      Claude Sonnet performs the final synthesis using all prior stage outputs,
+      labeled STAGE 4 — SONNET SYNTHESIS (Opus unavailable).
+
+  - step: 7
+    name: "Chain Summary Output"
+    mandatory: true
+    output_format: |
+      ╔══════════════════════════════════════════════════════╗
+      ║           4-MODEL CHAIN COMPLETE                     ║
+      ╚══════════════════════════════════════════════════════╝
+
+      FINAL SUBJECT LINE (primary): [Subject]
+      FINAL PREVIEW TEXT: [Preview text]
+
+      CHAIN DELTA — what changed at each stage:
+        Sonnet → Gemini: [What creative elements were added]
+        Gemini → OpenAI: [What problems were identified]
+        OpenAI → Opus: [What was fixed and synthesized]
+
+      RECOMMENDED A/B TEST:
+        A: [Subject from Stage 4 recommendation 1]
+        B: [Subject from Stage 4 recommendation 2]
+
+      NEXT STEPS:
+        1. Run /email-preview to generate client-safe HTML
+        2. Send a test via Putsmail before activating
+        3. Upload to Humanic with the recommended cohort and trigger
+
+fallback_handling:
+  - stage_that_fails: "Gemini (Stage 2)"
+    fallback: "Claude performs creative enhancement, labeled STAGE 2 — CLAUDE CREATIVE MODE (Gemini unavailable)"
+  - stage_that_fails: "OpenAI (Stage 3)"
+    fallback: "Claude performs analytical self-critique, labeled STAGE 3 — CLAUDE ANALYTICAL MODE (OpenAI unavailable)"
+  - stage_that_fails: "Opus (Stage 4)"
+    fallback: "Claude Sonnet performs final synthesis, labeled STAGE 4 — SONNET SYNTHESIS (Opus unavailable)"
+
+rules:
+  - "Never skip a stage — every model's contribution is input for the next"
+  - "Always show all four stage outputs in sequence so the user sees how the email evolved"
+  - "The Synthesis Notes in Stage 4 are mandatory — they explain the reasoning, not just the result"
+  - "If the user provides a Humanic campaign ID, offer to push the final email into that campaign via mcp__humanic__update_step_content after Stage 4"
+  - "Temperature: Stage 1 = default | Stage 2 = 0.9 | Stage 3 = default low | Stage 4 = default balanced"
+  - "Model IDs to update when newer versions release: gemini-2.0-flash → check Google AI docs | o3 → check OpenAI docs | claude-opus-4-6 → check Anthropic docs"
