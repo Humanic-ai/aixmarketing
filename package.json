@@ -1,8 +1,24 @@
 {
   "name": "aix-marketing",
   "version": "1.0.0",
-  "description": "Agentic marketing use cases with Claude",
+  "description": "Agentic lifecycle marketing with Claude Code skills — by Humanic",
   "type": "module",
+  "license": "MIT",
+  "author": "Humanic AI (https://humanic.ai)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Humanic-ai/aixmarketing.git"
+  },
+  "homepage": "https://humanic.ai",
+  "keywords": [
+    "claude-code",
+    "lifecycle-marketing",
+    "email-marketing",
+    "humanic",
+    "ai-marketing",
+    "mcp",
+    "agentic"
+  ],
   "scripts": {
     "brand-brief": "node 00-brand-brief/demo.js",
     "email-basics": "node 01-email-basics/demo.js",

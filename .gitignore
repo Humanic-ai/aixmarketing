@@ -1,0 +1,23 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# MCP server config (contains API keys)
+.mcp.json
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code local state
+.claude/worktrees/

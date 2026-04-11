@@ -1,32 +1,41 @@
-# AIX Marketing — Claude Code Workspace
+# AIX Marketing by Humanic — Claude Code Workspace
 
-This repository is a **teaching lab** for agentic marketing use cases built on Claude. Each numbered module is a self-contained demo showing how Claude can power a specific marketing workflow.
+This repository is an **open-source teaching lab** for agentic lifecycle marketing built on Claude Code. It contains slash commands and multi-step skills that generate, preview, and deploy marketing content — grounded in brand voice and real-world examples.
+
+Maintained by [Humanic](https://humanic.ai).
 
 ## Repo Purpose
-Demonstrate to new practitioners how to use Claude Code for end-to-end marketing — from brand brief generation through channel-specific content, paid ads, and third-party integrations (Instantly.ai, Humanic, Substack, etc.).
+Show practitioners how to use Claude Code skills for end-to-end lifecycle marketing — from brand brief generation through email campaigns, ads, content, and direct integration with Humanic for sending.
 
-## Module Map
-| # | Module | What It Demos |
-|---|--------|---------------|
-| 00 | `00-brand-brief/` | Generating a Charlie-style brand brief — the foundation everything else inherits |
-| 01 | `01-email-basics/` | One-shot, few-shot, and role-based prompting for email copy |
-| 02 | `02-email-headers/` | Prompting for image/video email header briefs |
-| 03 | `03-email-sequences/` | Multi-step sequences as a complex chained task |
-| 04 | `04-cold-email-instantly/` | Cold outreach copy → Instantly.ai campaign upload |
-| 05 | `05-lifecycle-humanic/` | Lifecycle email triggers → Humanic integration |
-| 06 | `06-aeo/` | Answer Engine Optimization — structure content for AI search |
-| 07 | `07-ads/` | Google Search / PMax + Meta ad creative copy |
-| 08 | `08-blog-substack/` | Long-form blog posts and Substack newsletter editions |
-| 09 | `09-website/` | Landing page copy, hero sections, CTA variants |
-| 10 | `10-social/` | Instagram captions, TikTok scripts, social ad briefs |
-| 11 | `11-youtube/` | Video scripts, titles, descriptions, thumbnail copy |
-| 12 | `12-reddit/` | Subreddit strategy, authentic post + comment templates |
-| 13 | `13-linkedin/` | Thought leadership, company posts, carousel copy |
+## Slash Commands
+These are markdown prompt files in `.claude/commands/`:
+
+| Command | File | What It Does |
+|---------|------|-------------|
+| `/brand-brief` | `brand-brief.md` | Generate a brand brief — the foundation for all outputs |
+| `/cold-email` | `cold-email.md` | Write a cold outreach email (Instantly.ai-ready) |
+| `/email-sequence` | `email-sequence.md` | Build a multi-email nurture sequence |
+| `/google-ad` | `google-ad.md` | Generate Google Search RSA + PMax variants |
+| `/meta-ad` | `meta-ad.md` | Generate Meta ad creative copy |
+| `/blog-post` | `blog-post.md` | Write a full SEO blog post or newsletter |
+| `/linkedin-post` | `linkedin-post.md` | Write a LinkedIn post for reach |
+
+## Skills
+These are multi-step agentic workflows in `.claude/skills/`:
+
+| Skill | Folder | What It Does |
+|-------|--------|-------------|
+| **abandoned-cart** | `abandoned-cart/` | Fetches live examples from 5 sources, scores against brand, writes cart recovery email |
+| **email-preview** | `email-preview/` | Audits email HTML for cross-client rendering (Gmail, Outlook, Yahoo, Apple Mail), generates client-safe code |
+| **humanic-auto** | `humanic-auto-claude-gemini-openai-claude-opus/` | Chains 4 AI models in sequence for the best possible email |
+| **re-engagement** | `re-engagement/` | Creates a 3-email win-back sequence for lapsed users |
+| **templates** | `templates/` | Email template generation |
+| **welcome-series** | `welcome-series/` | Multi-email welcome/onboarding sequence |
 
 ## Conventions
 
-### Prompt Files
-Every `prompts/` folder contains markdown files with this structure:
+### Prompt Structure
+Every slash command follows this structure:
 ```
 ## Role / Context
 ## Task
@@ -36,34 +45,27 @@ Every `prompts/` folder contains markdown files with this structure:
 ```
 
 ### Brand Context
-Always start a session by running `/brand-brief` or reading `shared/brand-context-template.md`. All downstream prompts assume brand context is loaded.
+Always start a session by running `/brand-brief`. All downstream commands and skills assume brand context is loaded.
 
 ### Environment Variables
-Copy `.env.example` → `.env` and fill in API keys before running any `demo.js` script.
+Copy `.env.example` → `.env` and fill in API keys before running any demo script.
 
-### Slash Commands
-Run `/help` in Claude Code to see all available slash commands for this project. Key ones:
-- `/brand-brief` — generate a brand brief
-- `/cold-email` — write a cold outreach email
-- `/email-sequence` — build a multi-email nurture sequence
-- `/google-ad` — generate Google Search ad variants
-- `/meta-ad` — generate Meta ad copy
-- `/blog-post` — write a full blog post
-- `/linkedin-post` — write a LinkedIn post
-- `/youtube-script` — write a YouTube video script
-- `/reddit-post` — craft a Reddit post
-- `/social-caption` — write Instagram/TikTok captions
-- `/aeo-content` — create AEO-optimized content
+### MCP Integrations
+The repo supports MCP servers for direct tool integration:
+- **Humanic** — lifecycle email campaigns, cohorts, analytics
+- **Figma** — design file access for email/ad creative briefs
 
-## Teaching Flow for Demos
-1. Start with `00-brand-brief` — set the brand context
-2. Show `01-email-basics` — explain prompting techniques with side-by-side comparison
-3. Walk through `03-email-sequences` — show chaining / complex tasks
-4. Pick one channel demo (ads, social, YouTube) based on audience interest
-5. Show an integration (`04-cold-email-instantly` or `05-lifecycle-humanic`)
+Configure MCP servers in `.mcp.json` (excluded from git — see `.mcp.json.example` or README for setup).
+
+## Teaching Flow
+1. Start with `/brand-brief` — set the brand context
+2. Generate a lifecycle email — `write a welcome email` or `write an abandoned cart email`
+3. Preview it — `preview my email` triggers the email-preview skill
+4. Push to Humanic — `list my campaigns` / `create a campaign`
+5. Show the multi-model chain — `run the 4-model chain` for the humanic-auto skill
 
 ## Key Principles
-- **Prompts are the product** — the quality of output depends entirely on prompt structure
 - **Brand brief first** — always ground outputs in brand voice before generating content
+- **Skills fetch live data** — they pull real examples before writing, not just prompting from memory
+- **Show the chain** — for multi-step skills, show each step's reasoning, not just final output
 - **Iterate, don't regenerate** — use Claude's context to refine, not restart
-- **Show the chain** — for sequences, show each step's reasoning, not just final output
