@@ -1,1 +1,30 @@
-
+{
+  "mcpServers": {
+    "figma-remote-mcp": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp",
+      "headers": {
+        "Authorization": "Bearer figd_-yMv5hwrmg6qHw13sTtG7fgUeWsClslw7qVMHjvf"
+      }
+    },
+    "humanic": {
+      "type": "http",
+      "url": "https://devmcp.humanic.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer hum__jHgETJ0dpv4bEfSbuugiie-ee7LpK9EA6MOUbX3cec"
+      }
+    },
+    "n8n": {
+      "type": "http",
+      "url": "https://aixmarketing.app.n8n.cloud/mcp-server/http",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyN2E4ZTM2Yy0yMTUzLTQyOWItYTliOS00YTUxODdhZjU1MjIiLCJpc3MiOiJuOG4iLCJhdWQiOiJtY3Atc2VydmVyLWFwaSIsImp0aSI6ImVhMDAxZTVmLTJkZmItNDQyOC04ODE3LWY3ZDFmNzhhOGE1YiIsImlhdCI6MTc3NjAxNjY5OH0.CRRRlBAft513glRsCaAx6iAZG0OtLBEzqRHxL0JaQzY"
+      }
+    }
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:reallygoodemails.com)"
+    ]
+  }
+}

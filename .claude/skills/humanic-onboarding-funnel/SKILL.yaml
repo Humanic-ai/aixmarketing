@@ -1,0 +1,457 @@
+name: humanic-onboarding-funnel
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds and manages a 4-stage event-driven onboarding funnel for Humanic.ai
+    users. Users flow through four campaigns based on product behavior:
+    Sign Up → Enter Prompt → Send Test Email → Upload CSV → Activate Campaign.
+    Each stage has a dedicated campaign and cohort. Users are automatically
+    moved between stages as they complete each product action.
+  trigger_phrases:
+    - "build the onboarding funnel"
+    - "set up onboarding campaigns"
+    - "humanic onboarding funnel"
+    - "lifecycle funnel"
+    - "create the welcome funnel"
+    - "set up user onboarding"
+    - "build the 4-stage funnel"
+    - "onboarding campaign setup"
+  when_to_use: >
+    Use this skill when setting up the full Humanic.ai user onboarding lifecycle.
+    It creates 4 campaigns tied to 4 behavior-based cohorts. Users automatically
+    progress through the funnel as they complete each product milestone. This
+    skill guides cohort creation (manual, in Humanic UI) and handles campaign
+    creation, email content upload, and activation via MCP.
+
+funnel_architecture:
+  overview: >
+    The funnel has 4 stages. Each stage has one cohort (audience) and one
+    campaign (email sequence). Cohorts are tag-based — PostHog fires a webhook
+    that adds a tag to the contact record when each product event occurs.
+    When a user advances to the next stage, the previous tag is removed and
+    the new tag is added, automatically moving them out of the old campaign
+    and into the new one.
+  stages:
+    - stage: 1
+      name: "Signed Up — No Prompt Yet"
+      trigger_event: "db_user_created"
+      event_id: "64fa3839-695c-452f-b032-b44e004f8b85"
+      tag: "onboarding_step_1"
+      cohort_name: "🟡 Onboarding — Step 1: Signed Up, No Prompt Yet"
+      campaign_name: "Onboarding Step 1 — Welcome & First Prompt"
+      goal: "Get the user to submit their first prompt from the dashboard"
+      exit_event: "Submitted Prompt From Dashboard"
+      exit_event_id: "e9f42b3d-1100-4bd8-9cff-52c1b19cb76e"
+      exit_action: "Remove tag onboarding_step_1, add tag onboarding_step_2"
+
+    - stage: 2
+      name: "Entered Prompt — No Test Email Yet"
+      trigger_event: "Submitted Prompt From Dashboard"
+      event_id: "e9f42b3d-1100-4bd8-9cff-52c1b19cb76e"
+      tag: "onboarding_step_2"
+      cohort_name: "🟠 Onboarding — Step 2: Prompt Done, No Test Email Yet"
+      campaign_name: "Onboarding Step 2 — Send Your First Test Email"
+      goal: "Get the user to send a test email"
+      exit_event: "db_test_email_sent"
+      exit_event_id: "7ab2868c-bdab-472a-b016-7ad43f4e679e"
+      exit_action: "Remove tag onboarding_step_2, add tag onboarding_step_3"
+
+    - stage: 3
+      name: "Test Email Sent — No CSV Yet"
+      trigger_event: "db_test_email_sent"
+      event_id: "7ab2868c-bdab-472a-b016-7ad43f4e679e"
+      tag: "onboarding_step_3"
+      cohort_name: "🔵 Onboarding — Step 3: Test Email Done, No CSV Yet"
+      campaign_name: "Onboarding Step 3 — Upload Your Contacts"
+      goal: "Get the user to upload a CSV of contacts"
+      exit_event: "db_csv_uploaded"
+      exit_event_id: "9a7f3b01-7762-468e-a786-0746413e32fc"
+      exit_action: "Remove tag onboarding_step_3, add tag onboarding_step_4"
+
+    - stage: 4
+      name: "CSV Uploaded — No Campaign Activated Yet"
+      trigger_event: "db_csv_uploaded"
+      event_id: "9a7f3b01-7762-468e-a786-0746413e32fc"
+      tag: "onboarding_step_4"
+      cohort_name: "🟣 Onboarding — Step 4: CSV Done, No Campaign Yet"
+      campaign_name: "Onboarding Step 4 — Activate Your First Campaign"
+      goal: "Get the user to activate their first campaign"
+      exit_event: "db_campaign_activated"
+      exit_event_id: "4f9756dd-c58b-4932-b109-123127e28a48"
+      exit_action: "Remove tag onboarding_step_4 — user has completed full onboarding"
+
+posthog_event_ids:
+  db_user_created: "64fa3839-695c-452f-b032-b44e004f8b85"
+  submitted_prompt_from_dashboard: "e9f42b3d-1100-4bd8-9cff-52c1b19cb76e"
+  db_test_email_sent: "7ab2868c-bdab-472a-b016-7ad43f4e679e"
+  db_csv_uploaded: "9a7f3b01-7762-468e-a786-0746413e32fc"
+  db_campaign_activated: "4f9756dd-c58b-4932-b109-123127e28a48"
+
+cohort_setup:
+  note: >
+    The Humanic cohort API currently does not support event-based filter
+    creation via MCP. Cohorts must be created manually in the Humanic UI.
+    Once created, provide the cohort IDs to this skill and it will wire
+    everything else up via MCP.
+  how_to_create_cohorts_in_ui:
+    - "Go to Humanic → Cohorts → Create Cohort"
+    - "Set cohort name exactly as specified in each stage above"
+    - "Under Filters, choose field: Tags, operator: equals, value: [tag name]"
+    - "Save the cohort and copy its ID from the URL"
+    - "Repeat for all 4 cohorts"
+  filter_format:
+    logic: "and"
+    filters:
+      - field: "_tags_"
+        operator: "eq"
+        value: "[tag name from stage config above]"
+
+instructions:
+  - step: 1
+    name: "Check Existing State"
+    content: |
+      Check if .humanic-onboarding-state.json exists in the project directory.
+      If it exists, load it and resume from the last recorded state.
+      If not, start from the beginning.
+
+      Display the funnel architecture overview:
+
+      ══════════════════════════════════════════════════════
+      HUMANIC ONBOARDING FUNNEL — 4 STAGE LIFECYCLE
+      ══════════════════════════════════════════════════════
+      Stage 1: Sign Up → Welcome email → Goal: submit first prompt
+      Stage 2: Prompt → Encourage test email → Goal: send test email
+      Stage 3: Test Email → Upload contacts → Goal: CSV upload
+      Stage 4: CSV Upload → Activate campaign → Goal: activate first campaign
+      ══════════════════════════════════════════════════════
+
+  - step: 2
+    name: "Cohort Setup — Manual (UI Required)"
+    content: |
+      The Humanic cohort API does not support creating tag-based cohorts via MCP.
+      Guide the user through creating 4 cohorts manually.
+
+      Output these exact instructions:
+
+      ──────────────────────────────────────────────────────
+      COHORT SETUP — DO THIS IN THE HUMANIC UI FIRST
+      ──────────────────────────────────────────────────────
+
+      Create 4 cohorts in Humanic → Cohorts → New Cohort.
+      For each cohort, use filter: Tags = [tag value]
+
+      COHORT 1:
+        Name: 🟡 Onboarding — Step 1: Signed Up, No Prompt Yet
+        Filter: Tags equals "onboarding_step_1"
+
+      COHORT 2:
+        Name: 🟠 Onboarding — Step 2: Prompt Done, No Test Email Yet
+        Filter: Tags equals "onboarding_step_2"
+
+      COHORT 3:
+        Name: 🔵 Onboarding — Step 3: Test Email Done, No CSV Yet
+        Filter: Tags equals "onboarding_step_3"
+
+      COHORT 4:
+        Name: 🟣 Onboarding — Step 4: CSV Done, No Campaign Yet
+        Filter: Tags equals "onboarding_step_4"
+
+      ──────────────────────────────────────────────────────
+      Once all 4 cohorts are created, share their IDs here.
+      Format: "cohort IDs: [id1], [id2], [id3], [id4]"
+      ──────────────────────────────────────────────────────
+
+      Wait for the user to provide cohort IDs before proceeding.
+
+  - step: 3
+    name: "Generate Email Content for All 4 Stages"
+    content: |
+      Before creating campaigns, generate the email content for each stage.
+      Use the brand brief in session context. If not loaded, ask the user to
+      run /brand-brief first.
+
+      Apply the following email brief for each stage:
+
+      STAGE 1 EMAIL — Welcome & First Prompt:
+        Type: welcome
+        Goal: Get user to submit their first prompt from the dashboard
+        Hook: Mirror the excitement of just signing up — this is the beginning
+        Core message: The first prompt is 30 seconds away and already has their brand voice built in
+        CTA: "Write My First Prompt" or "See What Humanic Writes For Me"
+        Urgency type: Curiosity and forward momentum, not artificial scarcity
+        Tone: Warm, confident, specific — show the product doing the work
+
+      STAGE 2 EMAIL — Send a Test Email:
+        Type: nurture
+        Goal: Get user to send a test email using the prompt they just wrote
+        Hook: They've already done the hard part (the prompt) — one click to see it in their inbox
+        Core message: A test email is the fastest way to feel what their contacts will feel
+        CTA: "Send Yourself a Test Email"
+        Tone: Momentum-building, low-effort framing — "you're one click away"
+
+      STAGE 3 EMAIL — Upload CSV:
+        Type: nurture
+        Goal: Get user to upload their contact list
+        Hook: Their email is ready — all that's missing is who receives it
+        Core message: Upload a CSV and Humanic handles the rest — no coding, no integrations
+        CTA: "Upload My Contacts"
+        Tone: Simple, reassuring — this is the last step before going live
+
+      STAGE 4 EMAIL — Activate Campaign:
+        Type: nurture / urgency
+        Goal: Get user to activate their first campaign
+        Hook: Everything is set — audience loaded, email written, test done
+        Core message: One click sends their first AI-written campaign to real people
+        CTA: "Activate My Campaign"
+        Tone: Confident, celebratory — make this feel like a launch moment
+
+      Generate all 4 emails in MJML format.
+      Output each with:
+        - 3 subject line variants
+        - Preview text
+        - Full MJML body
+
+  - step: 4
+    name: "Create All 4 Campaigns via MCP"
+    content: |
+      Once cohort IDs are provided and email content is generated, create the
+      4 campaigns using mcp__humanic__create_campaign.
+
+      For each campaign:
+        - name: [from stage config]
+        - description: [stage goal]
+        - cohort_id: [from user-provided IDs]
+        - type: "one_time" or "drip" based on stage
+
+      Output as each campaign is created:
+      ──────────────────────────────────────────
+      CAMPAIGN CREATED: [stage N]
+      Campaign ID: [id]
+      Cohort: [cohort name]
+      Status: Draft
+      ──────────────────────────────────────────
+
+      Save all campaign IDs to .humanic-onboarding-state.json.
+
+  - step: 5
+    name: "Upload Email Content via MCP"
+    content: |
+      For each campaign, call mcp__humanic__update_step_content with the MJML
+      generated in Step 3.
+
+      Apply the recommended subject line (variant 1) as the default.
+      Note in the state file which subject line variants are available for A/B
+      testing if the user wants to run /humanic-optimize later.
+
+      Output per campaign:
+      ──────────────────────────────────────────
+      EMAIL UPLOADED: Stage [N]
+      Campaign: [name]
+      Subject line: [subject]
+      Preview text: [preview]
+      Status: Content set ✅
+      ──────────────────────────────────────────
+
+  - step: 6
+    name: "Activate All Campaigns"
+    content: |
+      Activate all 4 campaigns via mcp__humanic__activate_campaign.
+
+      Note: Each campaign will only send to users who have the corresponding
+      tag applied to their contact record. Until the PostHog webhooks are
+      configured (Step 7), the cohorts will be empty.
+
+      Output:
+      ──────────────────────────────────────────
+      CAMPAIGNS ACTIVATED:
+      Stage 1: [status]
+      Stage 2: [status]
+      Stage 3: [status]
+      Stage 4: [status]
+      ──────────────────────────────────────────
+
+  - step: 7
+    name: "PostHog Webhook Setup Instructions"
+    content: |
+      The funnel is live — but cohorts will be empty until PostHog is
+      configured to tag contacts when events fire.
+
+      Output these exact setup instructions:
+
+      ══════════════════════════════════════════════════════════
+      POSTHOG → HUMANIC TAG AUTOMATION SETUP
+      ══════════════════════════════════════════════════════════
+
+      Go to PostHog → Data Pipelines → Destinations → New Webhook
+
+      WEBHOOK 1 — User Signs Up:
+        Trigger event: db_user_created
+        Webhook URL: [Humanic API endpoint to update contact]
+        Action: Add tag "onboarding_step_1" to the contact record
+
+      WEBHOOK 2 — User Submits Prompt:
+        Trigger event: Submitted Prompt From Dashboard
+        Webhook URL: [Humanic API endpoint to update contact]
+        Action: Remove tag "onboarding_step_1", add tag "onboarding_step_2"
+
+      WEBHOOK 3 — User Sends Test Email:
+        Trigger event: db_test_email_sent
+        Webhook URL: [Humanic API endpoint to update contact]
+        Action: Remove tag "onboarding_step_2", add tag "onboarding_step_3"
+
+      WEBHOOK 4 — User Uploads CSV:
+        Trigger event: db_csv_uploaded
+        Webhook URL: [Humanic API endpoint to update contact]
+        Action: Remove tag "onboarding_step_3", add tag "onboarding_step_4"
+
+      WEBHOOK 5 — User Activates Campaign:
+        Trigger event: db_campaign_activated
+        Webhook URL: [Humanic API endpoint to update contact]
+        Action: Remove tag "onboarding_step_4" — onboarding complete
+
+      ──────────────────────────────────────────────────────────
+      ALTERNATIVE: Use Humanic's native event trigger feature
+      if PostHog → Humanic native integration is available.
+      Check: Humanic → Settings → Integrations → PostHog
+      ──────────────────────────────────────────────────────────
+
+  - step: 8
+    name: "Final Funnel Summary"
+    content: |
+      Output the complete funnel report:
+
+      ╔══════════════════════════════════════════════════════════╗
+      ║        HUMANIC ONBOARDING FUNNEL — LIVE                  ║
+      ╚══════════════════════════════════════════════════════════╝
+
+      STAGE 1 — Welcome:
+        Campaign ID: [id]
+        Cohort ID:   [id]
+        Tag trigger: onboarding_step_1 (applied on db_user_created)
+        Subject:     [subject]
+        Status:      Active ✅
+
+      STAGE 2 — First Prompt:
+        Campaign ID: [id]
+        Cohort ID:   [id]
+        Tag trigger: onboarding_step_2 (applied on Submitted Prompt From Dashboard)
+        Subject:     [subject]
+        Status:      Active ✅
+
+      STAGE 3 — Test Email:
+        Campaign ID: [id]
+        Cohort ID:   [id]
+        Tag trigger: onboarding_step_3 (applied on db_test_email_sent)
+        Subject:     [subject]
+        Status:      Active ✅
+
+      STAGE 4 — Upload Contacts:
+        Campaign ID: [id]
+        Cohort ID:   [id]
+        Tag trigger: onboarding_step_4 (applied on db_csv_uploaded)
+        Subject:     [subject]
+        Status:      Active ✅
+
+      ──────────────────────────────────────────────────────────
+      NEXT STEPS:
+        1. Confirm PostHog webhooks are live (check Destinations)
+        2. Create a test user — walk through all 4 stages manually
+        3. Run /humanic-optimize on Stage 1 after 100+ sends
+        4. Check analytics weekly: open → click → conversion per stage
+        5. Run /humanic-auto to regenerate any under-performing stage email
+      ──────────────────────────────────────────────────────────
+
+state_file: ".humanic-onboarding-state.json"
+state_schema:
+  funnel_version: "string"
+  setup_date: "timestamp"
+  cohorts:
+    step_1:
+      id: "string"
+      name: "string"
+      tag: "onboarding_step_1"
+    step_2:
+      id: "string"
+      name: "string"
+      tag: "onboarding_step_2"
+    step_3:
+      id: "string"
+      name: "string"
+      tag: "onboarding_step_3"
+    step_4:
+      id: "string"
+      name: "string"
+      tag: "onboarding_step_4"
+  campaigns:
+    step_1:
+      id: "string"
+      name: "string"
+      subject_line: "string"
+      subject_variants: "array"
+      status: "string"
+    step_2:
+      id: "string"
+      name: "string"
+      subject_line: "string"
+      subject_variants: "array"
+      status: "string"
+    step_3:
+      id: "string"
+      name: "string"
+      subject_line: "string"
+      subject_variants: "array"
+      status: "string"
+    step_4:
+      id: "string"
+      name: "string"
+      subject_line: "string"
+      subject_variants: "array"
+      status: "string"
+  posthog_webhooks_configured: "boolean"
+  status: "cohorts_pending | campaigns_created | content_uploaded | active | complete"
+
+mcp_tools_used:
+  - mcp__humanic__list_campaigns
+  - mcp__humanic__create_campaign
+  - mcp__humanic__get_campaign
+  - mcp__humanic__update_step_content
+  - mcp__humanic__activate_campaign
+  - mcp__humanic__get_campaign_analytics
+  - mcp__humanic__list_cohorts
+  - mcp__humanic__get_cohort
+
+rules:
+  - "Always check for .humanic-onboarding-state.json before starting — never re-create campaigns that already exist"
+  - "Never proceed to campaign creation until all 4 cohort IDs are confirmed by the user"
+  - "Always generate all 4 emails before making any MCP calls — batch the content work first"
+  - "The tag names (onboarding_step_1 through onboarding_step_4) must be exact — they are the glue between PostHog and Humanic"
+  - "If a campaign activation fails, report the error and stop — do not retry blindly"
+  - "After full setup, always output the PostHog webhook instructions — the funnel is inert without them"
+  - "Offer to run /humanic-optimize on any stage that has >100 sends and <20% open rate"
+  - "If the user asks to add a Stage 5 (e.g., upsell after first campaign activated), extend the state schema and create a new cohort + campaign"
+  - "Cohort creation via MCP returns 422 on the Humanic preprod API — always guide through manual UI creation"
+  - "Write state file after every MCP write operation so progress is never lost"
+
+email_content_guidelines:
+  stage_1:
+    max_words: 150
+    cta_style: "curiosity — show the product doing the work"
+    avoid: "generic onboarding language, feature lists, company mission statements"
+    must_include: "a specific 'you can do this in 30 seconds' type framing"
+  stage_2:
+    max_words: 100
+    cta_style: "momentum — they already did the hard part"
+    avoid: "reintroducing the product, repeating Stage 1 content"
+    must_include: "reference to the prompt they already submitted"
+  stage_3:
+    max_words: 100
+    cta_style: "simplicity — make the CSV upload feel trivial"
+    avoid: "technical language, format requirements upfront"
+    must_include: "their email is waiting — just needs an audience"
+  stage_4:
+    max_words: 120
+    cta_style: "launch moment — make activation feel like a milestone"
+    avoid: "last-minute doubt-raising, excessive caveats"
+    must_include: "a sense of completion and forward momentum"

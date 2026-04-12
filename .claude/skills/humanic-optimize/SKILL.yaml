@@ -1,0 +1,359 @@
+name: humanic-optimize
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Runs a self-improving campaign optimization loop using Humanic MCP tools.
+    Sends 10% of the audience as a pilot, checks open and click rates after a
+    wait window, and if the target improvement threshold is not met, pauses the
+    campaign, analyzes the email body and subject lines, regenerates improved
+    content using Claude, and re-sends to the pilot cohort. Repeats until the
+    target is hit or max iterations are reached — then sends the winning version
+    to the remaining 90%.
+  trigger_phrases:
+    - "optimize my campaign"
+    - "improve open rates"
+    - "improve click rates"
+    - "run the optimization loop"
+    - "humanic optimize"
+    - "test and improve my email"
+    - "send to 10% first"
+    - "pilot my campaign"
+    - "self-improving campaign"
+  when_to_use: >
+    Use this skill when the user has a campaign in Humanic (draft or active)
+    and wants to maximize open and click rates before sending to the full
+    audience. The skill pilots on 10%, waits for engagement data, evaluates
+    against a +10% improvement target, and iterates on copy if the target is
+    not met — up to 3 iterations by default.
+
+mcp_tools_used:
+  - mcp__humanic__list_campaigns
+  - mcp__humanic__get_campaign
+  - mcp__humanic__get_campaign_analytics
+  - mcp__humanic__create_cohort
+  - mcp__humanic__list_cohorts
+  - mcp__humanic__pause_campaign
+  - mcp__humanic__activate_campaign
+  - mcp__humanic__update_step_content
+  - mcp__humanic__update_campaign
+
+optimization_targets:
+  open_rate_lift: 10        # minimum % improvement required over pilot baseline
+  click_rate_lift: 10       # minimum % improvement required over pilot baseline
+  pilot_size_pct: 10        # % of total cohort used for pilot send
+  max_iterations: 3         # maximum regeneration loops before sending best version
+  wait_hours: 24            # hours to wait after pilot send before reading analytics
+  wait_note: >
+    The skill cannot literally wait 24 hours in a single session. It will
+    instruct the user when to re-invoke it to check analytics, or can be
+    used with the /schedule skill to auto-trigger the analytics check.
+
+instructions:
+  - step: 1
+    name: "Identify the Campaign"
+    content: |
+      Ask the user for the campaign to optimize. Accept either:
+      - A campaign ID (e.g. from a previous session)
+      - A campaign name — then use mcp__humanic__list_campaigns to find it
+
+      Once identified, call mcp__humanic__get_campaign to load:
+      - Campaign name, status, steps, sender details
+      - Current email content (MJML and subject line from step content)
+      - Total audience size (from the assigned cohort)
+
+      If no cohort is assigned, stop and ask the user to assign one in the
+      Humanic UI before proceeding.
+
+  - step: 2
+    name: "Establish Baseline Metrics"
+    content: |
+      Call mcp__humanic__get_campaign_analytics with the campaign_id.
+
+      Record the current baseline:
+        baseline_open_rate: [value or 0 if no sends yet]
+        baseline_click_rate: [value or 0 if no sends yet]
+
+      Set optimization targets:
+        target_open_rate: baseline_open_rate + 10%
+        target_click_rate: baseline_click_rate + 10%
+
+      Output a clear starting state:
+
+      ══════════════════════════════════════════
+      OPTIMIZATION LOOP — STARTING STATE
+      ══════════════════════════════════════════
+      Campaign: [name]
+      Campaign ID: [id]
+      Baseline open rate: [value]%
+      Baseline click rate: [value]%
+      Target open rate: [baseline + 10]%
+      Target click rate: [baseline + 10]%
+      Pilot cohort size: 10% of total audience
+      Max iterations: 3
+      ══════════════════════════════════════════
+
+  - step: 3
+    name: "Create the 10% Pilot Cohort"
+    content: |
+      Call mcp__humanic__list_cohorts to get the campaign's existing audience
+      cohort and its contact_count.
+
+      Calculate pilot_size = round(contact_count * 0.10)
+
+      Create a new pilot cohort using mcp__humanic__create_cohort:
+        name: "[Campaign Name] — Pilot 10% (Iteration [N])"
+        description: "Auto-created pilot cohort for optimization loop. 10% of full audience."
+        filters: Use the same filter logic as the original cohort but add a
+                 random sample limiter if the API supports it, or note to the
+                 user that manual sizing may be needed.
+
+      Output:
+      ──────────────────────────────────────────
+      PILOT COHORT CREATED
+      Name: [cohort name]
+      Cohort ID: [id]
+      Target pilot size: [n] contacts (10% of [total])
+      ──────────────────────────────────────────
+
+  - step: 4
+    name: "Send Pilot — Iteration N"
+    iteration_variable: N  # starts at 1, increments on each loop
+    content: |
+      Update the campaign to use the pilot cohort via mcp__humanic__update_campaign.
+      Then activate the campaign via mcp__humanic__activate_campaign.
+
+      Output:
+      ──────────────────────────────────────────
+      ITERATION [N] — PILOT SEND ACTIVATED
+      Sending to: [pilot_size] contacts
+      Subject line used: [current subject]
+      Sent at: [timestamp]
+      ──────────────────────────────────────────
+
+      IMPORTANT — WAIT WINDOW:
+      Analytics need [wait_hours] hours to stabilize before evaluation.
+
+      Option A (manual): Re-invoke this skill in [wait_hours] hours with
+        the command: "check optimization results for campaign [id]"
+
+      Option B (automated): Run /schedule to create a trigger that
+        auto-checks results in [wait_hours] hours.
+
+      The skill will pause here and wait for the user to re-invoke
+      it after the wait window.
+
+  - step: 5
+    name: "Read and Evaluate Analytics"
+    content: |
+      Call mcp__humanic__get_campaign_analytics to get current metrics.
+
+      Extract:
+        current_open_rate: [value]%
+        current_click_rate: [value]%
+        emails_sent: [count]
+        emails_opened: [count]
+        emails_clicked: [count]
+
+      Evaluate against targets:
+        open_rate_met: current_open_rate >= target_open_rate
+        click_rate_met: current_click_rate >= target_click_rate
+        both_met: open_rate_met AND click_rate_met
+
+      Output:
+
+      ══════════════════════════════════════════
+      ITERATION [N] — ANALYTICS RESULTS
+      ══════════════════════════════════════════
+      Emails sent:        [count]
+      Open rate:          [current]%  (target: [target]%)  [✅ MET / ❌ NOT MET]
+      Click rate:         [current]%  (target: [target]%)  [✅ MET / ❌ NOT MET]
+      ──────────────────────────────────────────
+      VERDICT: [PROCEED TO FULL SEND / REGENERATE]
+      ══════════════════════════════════════════
+
+      IF both_met → jump to Step 7 (full send)
+      IF NOT both_met AND N < max_iterations → proceed to Step 6 (analyze and regenerate)
+      IF NOT both_met AND N >= max_iterations → jump to Step 7 with best version found
+
+  - step: 6
+    name: "Analyze and Regenerate Email"
+    trigger: "Analytics did not meet target AND iterations remaining"
+    content: |
+      First, pause the current campaign via mcp__humanic__pause_campaign.
+
+      Then perform a deep diagnostic analysis of the current email:
+
+      SUBJECT LINE ANALYSIS:
+      Evaluate the current subject line(s) against these dimensions:
+        - Clarity: Is the benefit immediately obvious?
+        - Curiosity gap: Does it create a reason to open without being clickbait?
+        - Personalization: Does it use {{first_name}} or a relevant hook?
+        - Length: Is it under 50 characters for mobile preview?
+        - Specificity: Does it use a number, stat, or concrete detail?
+        - Sentiment: Does it match the brand voice?
+      Score each dimension 1-5. Identify the lowest-scoring dimensions.
+
+      EMAIL BODY ANALYSIS:
+      Evaluate the email body against these dimensions:
+        - Hook: Does the first sentence earn the second?
+        - Clarity: Is the core message clear within the first 3 sentences?
+        - Proof: Is there a specific, credible proof point above the CTA?
+        - CTA friction: Is the CTA copy action-oriented and low-effort?
+        - Mobile readability: Are paragraphs short enough for phone reading?
+        - Mismatch: Does the body deliver on the subject line's promise?
+      Score each dimension 1-5. Identify root causes of low open/click rate.
+
+      DIAGNOSIS OUTPUT:
+      ──────────────────────────────────────────
+      ITERATION [N] DIAGNOSIS
+      ──────────────────────────────────────────
+      Open rate issue root cause:
+        [e.g. Subject line too vague — scored 2/5 on specificity]
+        [e.g. Preview text repeats subject line — no new hook]
+
+      Click rate issue root cause:
+        [e.g. CTA copy is generic "Learn More" — low action intent]
+        [e.g. Proof point is in P.S. — below fold, never seen]
+        [e.g. Body-to-subject mismatch — email doesn't deliver on promise]
+
+      REGENERATION STRATEGY FOR ITERATION [N+1]:
+        Subject line: [specific change and why]
+        Preview text: [specific change and why]
+        Body change 1: [specific change and why]
+        Body change 2: [specific change and why]
+        CTA: [specific change and why]
+      ──────────────────────────────────────────
+
+      Then regenerate the full email applying the diagnosis:
+
+      REGENERATION CONSTRAINTS:
+      - Fix every identified root cause — do not just rephrase
+      - Keep what worked: preserve any element that scored 4-5
+      - Apply the 2025 noticing effect to the subject line if open rate was low
+      - Move the proof point above the CTA if click rate was low
+      - If subject specificity was low: add a number, stat, or concrete timeframe
+      - If CTA friction was high: rewrite CTA to show the product doing the work
+        (e.g. "See Humanic Write My First Email" not "Get Started")
+      - Match brand voice from the brand brief exactly
+
+      After regenerating, call mcp__humanic__update_step_content with the new
+      MJML content for the campaign step.
+
+      Create a new pilot cohort for iteration N+1:
+        name: "[Campaign Name] — Pilot 10% (Iteration [N+1])"
+
+      Then return to Step 4 with N = N+1.
+
+  - step: 7
+    name: "Full Send — Winning Version"
+    trigger: "Target met OR max iterations reached"
+    content: |
+      Determine the winning version:
+      - If target was met: current version is the winner
+      - If max iterations reached without hitting target: use the version
+        with the highest open rate across all iterations
+
+      Create the remaining 90% cohort:
+        name: "[Campaign Name] — Full Send 90%"
+        description: "Remaining audience after pilot optimization. Auto-created."
+        filters: Same as original cohort, excluding pilot contacts if possible,
+                 or use the full original cohort (pilot contacts will already
+                 have received the email and will not re-receive it if
+                 allow_re_enrollment is false)
+
+      Update the campaign to use the full cohort via mcp__humanic__update_campaign.
+      Activate via mcp__humanic__activate_campaign.
+
+      Output final report:
+
+      ╔══════════════════════════════════════════════════════╗
+      ║        OPTIMIZATION LOOP COMPLETE                    ║
+      ╚══════════════════════════════════════════════════════╝
+
+      WINNING VERSION: Iteration [N]
+      Final subject line: [subject]
+      Final open rate (pilot): [rate]%
+      Final click rate (pilot): [rate]%
+      Lift vs baseline: +[delta]% open / +[delta]% click
+
+      ITERATIONS RUN: [N] of [max_iterations]
+      Improvement per iteration:
+        Iteration 1: [open]% open / [click]% click
+        Iteration 2: [open]% open / [click]% click  (if applicable)
+        Iteration 3: [open]% open / [click]% click  (if applicable)
+
+      FULL SEND:
+      Audience: [remaining_count] contacts (90% of [total])
+      Status: Activated ✅
+
+      NEXT STEPS:
+        - Monitor final campaign analytics in Humanic
+        - Run /humanic-optimize again in 48 hours to check full-send results
+        - Consider running the 4-model chain (/humanic-auto-claude-gemini-openai-claude-opus)
+          on the next campaign to start from a higher baseline
+
+wait_handling:
+  description: >
+    This skill cannot literally pause and wait between steps. Two modes of
+    operation are supported:
+  modes:
+    - name: "Manual mode (default)"
+      flow: |
+        1. User invokes skill — pilot is sent
+        2. Skill tells user when to come back (e.g. "re-invoke in 24 hours")
+        3. User re-invokes with "check optimization results for campaign [id]"
+        4. Skill reads analytics and continues the loop
+      resume_phrase: "check optimization results for campaign [campaign_id]"
+
+    - name: "Scheduled mode (automated)"
+      flow: |
+        After sending the pilot, the skill offers to create a scheduled
+        trigger using the /schedule skill that will automatically re-invoke
+        the analytics check after the wait window.
+      note: >
+        Requires the /schedule skill to be available and configured.
+        The scheduled trigger will call this skill with the campaign ID
+        and iteration number as arguments.
+
+state_tracking:
+  description: >
+    Between invocations, the skill tracks state via a local session file
+    written to the project directory. This allows the loop to resume
+    correctly across separate user sessions.
+  file: ".humanic-optimize-state.json"
+  schema:
+    campaign_id: "string"
+    campaign_name: "string"
+    baseline_open_rate: "number"
+    baseline_click_rate: "number"
+    target_open_rate: "number"
+    target_click_rate: "number"
+    current_iteration: "number"
+    pilot_cohort_ids: "array of cohort IDs per iteration"
+    iteration_results:
+      - iteration: "number"
+        open_rate: "number"
+        click_rate: "number"
+        subject_line: "string"
+        sent_at: "timestamp"
+    status: "pilot_sent | analyzing | regenerating | full_send | complete"
+  write_command: |
+    Use the Write tool to save state after every step so the loop can
+    resume if the session is interrupted.
+  read_command: |
+    On invocation, check if .humanic-optimize-state.json exists for the
+    campaign ID. If yes, resume from the last recorded status.
+
+rules:
+  - "Always read existing state file before starting — never restart the loop if a session is in progress"
+  - "Always pause the campaign via MCP before regenerating content — never overwrite content on an active send"
+  - "Never send to the full 90% until either the target is met or all iterations are exhausted"
+  - "Always output the full diagnosis before regenerating — the user must be able to see why the change was made"
+  - "If the Humanic API returns an error on activate, stop and report the error — do not retry blindly"
+  - "The 10% pilot size is a default — if the user specifies a different pilot percentage, use that"
+  - "The +10% lift target is a default — if the user specifies a different target, use that"
+  - "If baseline is 0% (no prior sends), any open rate > 0 is technically infinite lift — use absolute thresholds instead: open_rate >= 20% and click_rate >= 2%"
+  - "Write the state file after every step so progress is never lost between sessions"
+  - "Always show iteration history in the final report — the user needs to see the improvement journey, not just the end result"

@@ -1,0 +1,287 @@
+name: humanic-auto-image
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Generates a complete email using Claude Sonnet 4.6, then derives an image
+    brief from the copy and uses the Gemini image generation API (Imagen —
+    internally called Nano Banana) to produce a hero image. Delivers the final
+    email copy and image together, ready to paste into Humanic.
+  trigger_phrases:
+    - "generate an email with an image"
+    - "create an email with a hero image"
+    - "email with AI image"
+    - "humanic auto image"
+    - "nano banana email"
+    - "gemini image email"
+    - "email with image generation"
+    - "generate image for my email"
+  when_to_use: >
+    Use this skill when the user wants a complete email asset — copy and hero
+    image — generated end-to-end by AI. Claude Sonnet 4.6 writes the email,
+    then a structured image brief is derived from the copy (brand colours,
+    tone, subject, visual concept), and Gemini's image model generates the
+    hero image as base64. The final output includes the email copy, the image
+    brief, and instructions to embed the image into Humanic.
+
+model_roles:
+  - stage: 1
+    model: "claude-sonnet-4-6"
+    role: "Email copy generation"
+    strength: "Brand voice precision, structured copy, strategic framing"
+  - stage: 2
+    model: "gemini-3.1-flash-image-preview"
+    fallback_model: "gemini-2.5-flash-image"
+    role: "Hero image generation"
+    strength: "High-quality marketing image generation with legible text support"
+    note: >
+      Update the model ID here as Gemini releases newer image models.
+      Current best for speed: gemini-3.1-flash-image-preview.
+      Current best for quality: gemini-3-pro-image-preview.
+
+prerequisites:
+  env_vars:
+    - key: "GEMINI_API_KEY"
+      format: "AIza..."
+      used_for: "Gemini image generation in Stage 2"
+  check_command: |
+    echo "Gemini: $GEMINI_API_KEY"
+  on_missing_key: "Stop and ask the user to add GEMINI_API_KEY to .env before proceeding"
+
+instructions:
+  - step: 1
+    name: "Load Brand Context"
+    content: |
+      Check if a brand brief is already in session context.
+      - If yes: extract company name, ICP, brand voice adjectives, key
+        differentiators, brand colours (hex if available), and the email goal.
+      - If no: ask the user to run /brand-brief first, or collect minimum
+        viable context:
+          - Company name and one-line product description
+          - Target recipient (persona: who is this email going to?)
+          - Email goal (what should the reader feel and do after reading?)
+          - Brand tone (3 adjectives)
+          - Brand colours (primary hex or colour name — used in image prompt)
+          - Any visual style preferences (photography / illustration / abstract /
+            minimalist / bold / lifestyle / product-focused)
+
+  - step: 2
+    name: "Collect Email Brief"
+    fields:
+      - name: "type"
+        options: ["welcome", "re-engagement", "promotional", "announcement", "nurture"]
+      - name: "cta"
+        description: "The single action this email drives"
+      - name: "key_message"
+        description: "The one thing this email must communicate"
+      - name: "tone_notes"
+        description: "Anything specific — warmer than usual / short and punchy / no emojis"
+      - name: "image_placement"
+        options: ["hero (top of email)", "mid-email banner", "product showcase"]
+        default: "hero (top of email)"
+      - name: "image_aspect_ratio"
+        options: ["16:9 (wide banner)", "3:2 (landscape)", "1:1 (square)", "4:5 (portrait)"]
+        default: "16:9 (wide banner)"
+        note: "16:9 is the standard for email hero images at 600px width"
+
+  - step: 3
+    name: "Stage 1 — Claude Sonnet 4.6: Email Copy"
+    role: "Write the complete email — subject lines, preview text, body, CTA"
+    constraints:
+      - "Match brand voice adjectives precisely"
+      - "Write 3 subject line variants (identity / benefit / curiosity angles)"
+      - "Write preview text (80–100 characters)"
+      - "Write a complete email body: hook → core message → proof → CTA → optional P.S."
+      - "Use 'so you can' benefit structure where possible"
+      - "One CTA only"
+      - "No filler phrases (excited to share / don't miss out / synergy)"
+      - "Leave a clear [HERO IMAGE] placeholder at the top of the email body"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 1 — EMAIL COPY (Claude Sonnet 4.6)
+      ══════════════════════════════════════════
+
+      SUBJECT LINE OPTIONS (3 variants):
+      1. [Identity/belonging angle]
+      2. [Benefit/value angle]
+      3. [Curiosity/specificity angle]
+
+      PREVIEW TEXT: [80–100 chars]
+
+      EMAIL BODY:
+
+      [HERO IMAGE — 600px wide, generated in Stage 2]
+
+      [Opening hook — 1–2 sentences mirroring where the reader is right now]
+
+      [Core message — the one thing this email needs to say]
+
+      [Proof — one stat, customer outcome, or social proof beat]
+
+      [CTA button]
+
+      [Optional P.S.]
+
+  - step: 4
+    name: "Derive the Image Brief"
+    instruction: >
+      Before calling the Gemini API, derive a structured image brief from the
+      email copy. This ensures the image is semantically aligned with the email
+      content — not generic stock imagery.
+    brief_fields:
+      - name: "visual_concept"
+        instruction: "What scene, object, or emotion should the image convey? Derive from the email hook and key message."
+      - name: "style"
+        instruction: "Match to brand voice: bold/playful brands → vibrant illustration; professional/B2B → clean lifestyle photography; wellness → soft natural tones"
+      - name: "colour_palette"
+        instruction: "Use brand primary colour + 1–2 complementary tones. If no hex available, describe: deep navy and warm gold, etc."
+      - name: "text_overlay"
+        instruction: "If the headline or a key phrase should appear on the image, include it here. Gemini supports legible text in images."
+        optional: true
+      - name: "mood"
+        instruction: "1–3 adjectives describing the emotional tone: confident / warm / energetic / calm / premium / playful"
+      - name: "what_to_avoid"
+        instruction: "Any elements that would contradict brand voice or policy: no stock-photo clichés, no faces if brand is product-focused, etc."
+    output_format: |
+      ══════════════════════════════════════════
+      IMAGE BRIEF (derived from email copy)
+      ══════════════════════════════════════════
+
+      Visual concept: [what the image shows]
+      Style: [photography / illustration / abstract / mixed]
+      Colour palette: [primary + accent colours]
+      Mood: [3 adjectives]
+      Text overlay: [headline or phrase to embed, or NONE]
+      Aspect ratio: [from user input — default 16:9]
+      What to avoid: [list]
+
+      GEMINI PROMPT (constructed from brief):
+      "[Full natural-language prompt that will be sent to the Gemini API]"
+
+  - step: 5
+    name: "Stage 2 — Gemini Image Generation"
+    role: "Generate the hero image from the image brief"
+    instruction: >
+      Use the Bash tool to call the Gemini image generation API with the
+      prompt constructed in Step 4. Save the base64 image output to a local
+      file so the user can use it immediately.
+    api:
+      method: "POST"
+      url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent"
+      headers:
+        x-goog-api-key: "$GEMINI_API_KEY"
+        Content-Type: "application/json"
+      body_template: |
+        {
+          "contents": [{
+            "parts": [
+              {
+                "text": "[GEMINI_IMAGE_PROMPT]"
+              }
+            ]
+          }],
+          "generationConfig": {
+            "responseModalities": ["IMAGE"],
+            "imageConfig": {
+              "aspectRatio": "[ASPECT_RATIO]",
+              "imageSize": "2K"
+            }
+          }
+        }
+      notes:
+        - "Replace [GEMINI_IMAGE_PROMPT] with the full prompt constructed in Step 4"
+        - "Replace [ASPECT_RATIO] with the user's chosen ratio (e.g. 16:9)"
+        - "responseModalities IMAGE-only skips text response and returns only the image"
+        - "imageSize 2K gives high enough resolution for email heroes at 600px display width"
+    bash_command: |
+      curl -s -X POST \
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent" \
+        -H "x-goog-api-key: $GEMINI_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "contents": [{
+            "parts": [{"text": "[GEMINI_IMAGE_PROMPT]"}]
+          }],
+          "generationConfig": {
+            "responseModalities": ["IMAGE"],
+            "imageConfig": {
+              "aspectRatio": "[ASPECT_RATIO]",
+              "imageSize": "2K"
+            }
+          }
+        }' \
+        | jq -r '.candidates[0].content.parts[] | select(.inline_data) | .inline_data.data' \
+        | base64 --decode > email-hero-image.png && echo "Image saved: email-hero-image.png"
+    on_success: |
+      Confirm the file was saved: email-hero-image.png
+      Display the image brief and prompt used so the user can iterate if needed.
+    on_failure: |
+      Output the API error message. Common causes:
+      - Invalid or missing GEMINI_API_KEY → ask user to verify
+      - Model not available on current API tier → suggest fallback model gemini-2.5-flash-image
+      - Prompt triggered content policy → offer to rephrase the image prompt
+
+      Fallback model command (replace model name only):
+      curl -s -X POST \
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent" \
+        ...
+
+  - step: 6
+    name: "Final Output — Email + Image"
+    instruction: >
+      Deliver the complete email asset in one combined output block.
+    output_format: |
+      ╔══════════════════════════════════════════════════════╗
+      ║        HUMANIC AUTO IMAGE — COMPLETE ASSET           ║
+      ╚══════════════════════════════════════════════════════╝
+
+      RECOMMENDED SUBJECT LINE: [Primary pick from Stage 1]
+      PREVIEW TEXT: [From Stage 1]
+
+      ─── EMAIL BODY ───────────────────────────────────────
+
+      [HERO IMAGE]
+      File: email-hero-image.png
+      Dimensions: 2K at [ASPECT_RATIO] — display at 600px width in Humanic
+      Alt text: [Write a descriptive alt text for the image, 10–15 words]
+
+      [Full email body from Stage 1]
+
+      ─── IMAGE DETAILS ────────────────────────────────────
+
+      Model used: [gemini-3.1-flash-image-preview or fallback]
+      Prompt used: [Full Gemini prompt — show so user can iterate]
+      SynthID watermark: Embedded automatically by Gemini (invisible to readers)
+
+      ─── HOW TO ADD TO HUMANIC ────────────────────────────
+
+      1. Open your Humanic campaign
+      2. In the email editor, click the image block at the top of the email
+      3. Upload email-hero-image.png from your local machine
+      4. Set display width to 600px
+      5. Add the alt text above for accessibility
+      6. Paste the email body copy into the text blocks below the image
+      7. Set your subject line and preview text
+      8. Activate the campaign
+
+  - step: 7
+    name: "Offer Iterations and Variants"
+    variants:
+      - "Regenerate image with a different style (e.g. switch from photography to illustration)"
+      - "Generate 3 image variants from the same prompt for A/B visual testing"
+      - "Add text overlay to the image (embed the headline directly in the image)"
+      - "Generate a matching mobile banner (1:1 square crop) alongside the 16:9 hero"
+      - "Run /email-preview to wrap the email copy and image in client-safe HTML"
+      - "Run the 4-model chain (/humanic-auto-claude-gemini-openai-claude-opus) on the copy before image generation for a higher-quality email"
+
+rules:
+  - "Always derive the image brief from the email copy — never ask the user to write a separate image prompt. The brief should feel semantically connected to the email."
+  - "Always show the full Gemini prompt used so the user can understand and iterate on it"
+  - "Always write alt text for the generated image — email accessibility requires it"
+  - "The [HERO IMAGE] placeholder must appear in the email body output at Stage 1 — never deliver copy without it marked"
+  - "Images are saved locally as email-hero-image.png — remind the user to upload to Humanic manually or via the MCP tool"
+  - "SynthID watermark is embedded automatically by Gemini — it is invisible to email readers and does not need to be removed"
+  - "If the brand has specific hex colours, include them in the Gemini prompt as: primary colour [HEX], accent [HEX]"
+  - "imageSize 2K is the default — use 4K only if the user explicitly requests print-quality output"
+  - "Model IDs to update when Gemini releases newer image models: replace gemini-3.1-flash-image-preview in the bash command"
