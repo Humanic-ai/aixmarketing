@@ -1,0 +1,81 @@
+name: n8n-campaign-trigger
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that triggers Humanic campaigns based on external
+    events from CRM systems, Stripe payments, or any webhook source. Maps
+    an incoming event (new paid customer, churned user, trial expired, etc.)
+    to a specific Humanic campaign activation via the Humanic MCP API.
+  trigger_phrases:
+    - "trigger a humanic campaign from n8n"
+    - "activate campaign on stripe event"
+    - "trigger campaign from CRM"
+    - "n8n campaign trigger"
+    - "fire humanic campaign on payment"
+    - "trigger campaign on external event"
+    - "n8n to humanic campaign"
+  when_to_use: >
+    Use when the user wants to fire a Humanic campaign in response to an
+    external system event — a Stripe payment, HubSpot deal stage change,
+    Salesforce opportunity close, or any other webhook. The workflow receives
+    the event, extracts the user's email, looks up or creates the Humanic
+    contact, and activates the appropriate campaign.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "linear_chain"
+node_types:
+  - n8n-nodes-base.webhook (v2.1) — receives external event
+  - n8n-nodes-base.set (v3.4) — extract and normalize email + campaign ID
+  - n8n-nodes-base.httpRequest (v4.4) — Humanic: tag contact + activate campaign
+  - n8n-nodes-base.respondToWebhook (v1.5) — acknowledge source system
+
+supported_sources:
+  - name: "Stripe"
+    events: ["customer.subscription.created", "invoice.payment_succeeded", "customer.subscription.deleted"]
+    email_path: "data.object.customer_email"
+  - name: "HubSpot"
+    events: ["deal.propertyChange", "contact.creation"]
+    email_path: "properties.email.value"
+  - name: "Generic webhook"
+    email_path: "body.email"
+
+instructions:
+  - step: 1
+    name: "Collect Trigger Definition"
+    content: |
+      Ask the user:
+        - Source system (Stripe / HubSpot / Salesforce / custom webhook)
+        - Event that should fire the campaign (e.g. payment succeeded)
+        - Which Humanic campaign to activate (name or ID)
+        - Email field path in the incoming payload (e.g. data.object.customer_email)
+
+  - step: 2
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes: ["webhook", "set", "http request", "respond to webhook"]
+      3. get_node_types for all found IDs
+      4. Write workflow:
+           - Webhook trigger (POST /campaign-trigger/[source])
+           - Set node: extract email from source-specific path, set campaign_id
+           - HTTP Request: Humanic API — add contact tag and activate campaign
+           - Respond to Webhook: 200 OK
+      5. validate_workflow
+      6. create_workflow_from_code
+
+rules:
+  - "Always normalize the email into a clean field before the Humanic API call"
+  - "Use placeholder() for both the Humanic API URL and campaign ID"
+  - "Add error handling on the HTTP Request node (onError: continueErrorOutput) — external events must never block the source system"
+  - "Always validate before creating"

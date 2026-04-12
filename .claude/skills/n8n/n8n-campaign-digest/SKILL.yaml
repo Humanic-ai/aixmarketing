@@ -1,0 +1,89 @@
+name: n8n-campaign-digest
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that pulls Humanic campaign analytics on a
+    schedule, formats them into a clear performance digest, and delivers
+    it via Slack or email. Includes open rate, click rate, sends, and
+    week-over-week delta for every active campaign.
+  trigger_phrases:
+    - "build a campaign digest in n8n"
+    - "n8n campaign analytics report"
+    - "send humanic analytics to slack"
+    - "weekly campaign digest n8n"
+    - "n8n performance report"
+    - "automate analytics report n8n"
+    - "n8n campaign digest"
+  when_to_use: >
+    Use when the user wants automated campaign performance reporting —
+    a daily or weekly digest that pulls Humanic analytics and delivers
+    a formatted summary to Slack or email without manual checking.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "linear_chain + batch_processing"
+node_types:
+  - n8n-nodes-base.scheduleTrigger (v1.3) — daily/weekly schedule
+  - n8n-nodes-base.httpRequest (v4.4) — Humanic list_campaigns API
+  - n8n-nodes-base.splitInBatches — iterate campaigns
+  - n8n-nodes-base.httpRequest — Humanic get_campaign_analytics per campaign
+  - n8n-nodes-base.set (v3.4) — format digest message
+  - n8n-nodes-base.slack or n8n-nodes-base.gmail — deliver digest
+
+humanic_api_endpoints:
+  list_campaigns: "GET /api/campaigns"
+  get_analytics: "GET /api/campaigns/{campaign_id}/analytics"
+
+digest_format: |
+  📊 *Humanic Campaign Digest — {{ date }}*
+
+  {% for campaign in campaigns %}
+  *{{ campaign.name }}*
+  Sent: {{ campaign.emails_sent }} | Open: {{ campaign.open_rate }}% | Click: {{ campaign.click_rate }}%
+  {% endfor %}
+
+  _Next digest: {{ next_run }}_
+
+instructions:
+  - step: 1
+    name: "Collect Digest Brief"
+    content: |
+      Ask the user:
+        - Delivery cadence: daily (9am) / weekly (Monday 8am) / custom
+        - Delivery channel: Slack (channel name) / email (address)
+        - Which campaigns to include: all active / specific campaign IDs
+        - Whether to include week-over-week comparison
+
+  - step: 2
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes: ["schedule trigger", "http request", "split in batches",
+         "set", "slack" or "gmail"]
+      3. get_node_types for all found IDs
+      4. Write workflow:
+           - Schedule trigger (cron from cadence)
+           - HTTP Request: GET Humanic campaigns list
+           - Split in Batches: one per campaign
+           - HTTP Request: GET analytics per campaign
+           - Set node: aggregate results + format digest string
+           - Slack/Gmail node: send digest
+      5. validate_workflow
+      6. create_workflow_from_code
+
+rules:
+  - "Always use Schedule Trigger — digest is automated, never manual"
+  - "Always include campaign name, sends, open rate, and click rate as minimum fields"
+  - "Use newCredential('Humanic API') for Bearer auth on all Humanic API calls"
+  - "Slack message should use markdown formatting for readability"
+  - "Always validate before creating"

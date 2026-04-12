@@ -1,0 +1,105 @@
+name: n8n-posthog-to-humanic
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that listens for PostHog events via webhook and
+    routes each event to the correct Humanic action — tagging contacts,
+    moving them between cohorts, or triggering campaign enrollment. Handles
+    multi-event routing via a Switch node so a single webhook endpoint
+    receives all PostHog events.
+  trigger_phrases:
+    - "connect PostHog to Humanic in n8n"
+    - "route PostHog events to Humanic"
+    - "n8n posthog humanic"
+    - "posthog webhook to humanic"
+    - "sync posthog events to humanic"
+    - "posthog to humanic workflow"
+  when_to_use: >
+    Use when the user wants a single n8n workflow that receives all PostHog
+    product events via one webhook endpoint and routes each event type to the
+    appropriate Humanic contact update. More efficient than a separate webhook
+    per event — one PostHog destination feeds all Humanic lifecycle actions.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "multi_way_routing"
+node_types:
+  - n8n-nodes-base.webhook (v2.1) — single entry point for all PostHog events
+  - n8n-nodes-base.switch (v3.2) — routes by event name
+  - n8n-nodes-base.httpRequest (v4.4) — Humanic API call per event type
+  - n8n-nodes-base.respondToWebhook (v1.5) — acknowledge PostHog
+
+posthog_event_ids:
+  db_user_created: "64fa3839-695c-452f-b032-b44e004f8b85"
+  submitted_prompt_from_dashboard: "e9f42b3d-1100-4bd8-9cff-52c1b19cb76e"
+  db_test_email_sent: "7ab2868c-bdab-472a-b016-7ad43f4e679e"
+  db_csv_uploaded: "9a7f3b01-7762-468e-a786-0746413e32fc"
+  db_campaign_activated: "4f9756dd-c58b-4932-b109-123127e28a48"
+
+instructions:
+  - step: 1
+    name: "Collect Event Map"
+    content: |
+      Ask the user which PostHog events to handle and what Humanic action
+      each should trigger. If context already has the event list (e.g. from
+      the onboarding funnel), use it directly.
+
+      Standard Humanic.ai onboarding event map:
+        db_user_created              → add tag: onboarding_step_1
+        Submitted Prompt From Dashboard → remove: onboarding_step_1, add: onboarding_step_2
+        db_test_email_sent           → remove: onboarding_step_2, add: onboarding_step_3
+        db_csv_uploaded              → remove: onboarding_step_3, add: onboarding_step_4
+        db_campaign_activated        → remove: onboarding_step_4 (onboarding complete)
+
+  - step: 2
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes: ["webhook", "switch", "http request", "respond to webhook"]
+      3. get_node_types for all found node IDs
+      4. Write workflow:
+           - Single webhook trigger (POST /posthog-events, responseMode: responseNode)
+           - Switch node routing on expr('{{ $json.body.event }}')
+           - One HTTP Request branch per event → Humanic tag update
+           - Respond to Webhook at the end of each branch
+      5. validate_workflow
+      6. create_workflow_from_code
+
+  - step: 3
+    name: "PostHog Setup Instructions"
+    content: |
+      After creation output:
+
+      ══════════════════════════════════════════════════════
+      POSTHOG → N8N → HUMANIC CONNECTED
+      ══════════════════════════════════════════════════════
+      Single webhook URL: POST [webhook URL]
+
+      IN POSTHOG:
+        Data Pipelines → Destinations → New Webhook
+        URL: [webhook URL]
+        Events to send: Select all 5 lifecycle events
+        Payload: { "email": "{person.email}", "event": "{event}" }
+
+      IN N8N:
+        Credentials → New → HTTP Bearer Auth
+        Name: "Humanic API"
+        Token: [Humanic Bearer token]
+      ══════════════════════════════════════════════════════
+
+rules:
+  - "One webhook endpoint for all PostHog events — never create separate webhooks per event in this skill"
+  - "Switch node must route on the event name field from the PostHog payload body"
+  - "Always add a default/fallback branch on the Switch node that responds 200 without error"
+  - "Always call validate_workflow before create"
+  - "Use placeholder() for Humanic API URL on every HTTP Request node"

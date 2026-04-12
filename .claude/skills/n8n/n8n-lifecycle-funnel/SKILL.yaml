@@ -1,0 +1,113 @@
+name: n8n-lifecycle-funnel
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an event-driven user lifecycle funnel in n8n. Accepts a list of
+    lifecycle stages (each with an event name, webhook path, and tag to apply),
+    then generates a validated n8n workflow with one webhook trigger and one
+    Humanic API call per stage. Outputs webhook URLs ready for PostHog or any
+    event source.
+  trigger_phrases:
+    - "build a lifecycle funnel in n8n"
+    - "create onboarding workflow in n8n"
+    - "n8n lifecycle funnel"
+    - "n8n onboarding workflow"
+    - "event-driven funnel in n8n"
+    - "build funnel stages in n8n"
+  when_to_use: >
+    Use when the user wants to create a multi-stage lifecycle or onboarding
+    funnel in n8n where each stage is triggered by a product event (from
+    PostHog, Segment, or a custom webhook) and moves a user between cohorts
+    or tags in Humanic.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "multiple_triggers"
+node_types:
+  - n8n-nodes-base.webhook (v2.1) — one per stage
+  - n8n-nodes-base.httpRequest (v4.4) — Humanic tag update per stage
+  - n8n-nodes-base.respondToWebhook (v1.5) — acknowledge each webhook
+
+instructions:
+  - step: 1
+    name: "Collect Funnel Definition"
+    content: |
+      Ask the user for:
+        - Funnel name (e.g. "Onboarding", "Trial Conversion")
+        - Number of stages (default: 4)
+        - For each stage:
+            - Stage name (e.g. "User Signs Up")
+            - Trigger event name (e.g. "db_user_created")
+            - Webhook path (e.g. "lifecycle/signup")
+            - Tag to apply (e.g. "onboarding_step_1")
+            - Tag to remove from previous stage (if applicable)
+
+      If the user has already described stages, extract them from context
+      without asking again.
+
+  - step: 2
+    name: "Generate Workflow via n8n SDK"
+    content: |
+      Follow the n8n MCP protocol exactly:
+
+      1. Call mcp__n8n__get_sdk_reference to load SDK patterns
+      2. Call mcp__n8n__search_nodes for: ["webhook", "http request",
+         "respond to webhook"]
+      3. Call mcp__n8n__get_node_types for all node IDs found
+      4. Write workflow code using the SDK:
+           - One webhook trigger per stage (POST, responseMode: responseNode)
+           - One HTTP Request node per stage (Humanic tag update)
+           - One Respond to Webhook node per stage (200 OK + stage number)
+           - One sticky note overview on the canvas
+      5. Call mcp__n8n__validate_workflow — fix any errors and re-validate
+      6. Call mcp__n8n__create_workflow_from_code
+
+  - step: 3
+    name: "Output Webhook URLs and Next Steps"
+    content: |
+      After creation, output:
+
+      ══════════════════════════════════════════════════════
+      LIFECYCLE FUNNEL CREATED IN N8N
+      ══════════════════════════════════════════════════════
+      Workflow: [name]
+      ID: [id]
+      URL: [n8n workflow URL]
+
+      WEBHOOK ENDPOINTS:
+      Stage 1: POST https://[n8n-instance]/webhook/[path]
+      Stage 2: POST https://[n8n-instance]/webhook/[path]
+      ...
+
+      NEXT STEPS:
+      1. Add Humanic API Bearer token as credential "Humanic API" in n8n
+      2. Fill in the Humanic contact tag API URL in each HTTP Request node
+      3. Point PostHog webhook destinations to the URLs above
+      4. Activate the workflow in n8n
+      ══════════════════════════════════════════════════════
+
+webhook_payload_schema:
+  description: >
+    Expected payload format for each webhook. PostHog sends this via
+    Data Pipelines → Destinations → Webhook.
+  format:
+    email: "user@example.com"
+    event: "event_name_from_posthog"
+    properties: {}
+
+rules:
+  - "Always use responseMode: responseNode on webhook triggers — never leave requests hanging"
+  - "Always use newCredential('Humanic API') for bearer auth — never hardcode tokens"
+  - "Each stage webhook path must be unique — collisions break routing"
+  - "Always call validate_workflow before create_workflow_from_code"
+  - "Output all webhook URLs after creation so user can configure PostHog immediately"
+  - "Use placeholder() for the Humanic API URL — the exact endpoint varies by org"
+  - "Position nodes cleanly: webhooks at x=240, HTTP requests at x=540, respond at x=840. Increment y by 260 per stage."

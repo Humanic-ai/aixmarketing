@@ -1,0 +1,99 @@
+name: n8n-webhook-router
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that acts as a single webhook endpoint for
+    multiple PostHog or product events. A Switch node routes each incoming
+    event type to the correct downstream action — tagging in Humanic,
+    sending a Slack alert, logging to a Google Sheet, or triggering another
+    n8n workflow. Eliminates the need for separate webhook endpoints per event.
+  trigger_phrases:
+    - "build a webhook router in n8n"
+    - "n8n webhook router"
+    - "single webhook for multiple events"
+    - "route events in n8n"
+    - "n8n event router"
+    - "posthog webhook router n8n"
+    - "multi-event webhook n8n"
+  when_to_use: >
+    Use when the user wants one webhook URL to handle many different event
+    types, with each event routed to a different action. More maintainable
+    than separate workflows per event — one endpoint to configure in PostHog,
+    one workflow to monitor.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "multi_way_routing"
+node_types:
+  - n8n-nodes-base.webhook (v2.1) — single entry point
+  - n8n-nodes-base.switch (v3.2) — routes by event name
+  - n8n-nodes-base.httpRequest (v4.4) — per-event action
+  - n8n-nodes-base.respondToWebhook (v1.5) — at end of each branch
+  - n8n-nodes-base.noOp (optional) — fallback for unrecognised events
+
+instructions:
+  - step: 1
+    name: "Collect Routing Map"
+    content: |
+      Ask the user for the event routing map:
+        - Webhook path (e.g. /events/posthog)
+        - For each event type:
+            - Event name (e.g. db_user_created)
+            - Action: Humanic tag / Slack alert / Google Sheet log / other webhook
+
+      If context has the Humanic onboarding event map, suggest it as the
+      default routing map.
+
+  - step: 2
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes: ["webhook", "switch", "http request", "respond to webhook",
+         "no operation"]
+      3. get_node_types for all found IDs
+      4. Write workflow:
+           - Webhook trigger: POST /events/[source]
+           - Switch node: route on expr('{{ $json.body.event }}')
+             - Case 0: event name 1 → action node → Respond OK
+             - Case 1: event name 2 → action node → Respond OK
+             - ... one case per event
+             - Default: No-op → Respond OK (unknown events don't error)
+      5. validate_workflow
+      6. create_workflow_from_code
+
+  - step: 3
+    name: "Output Router Summary"
+    content: |
+      After creation output:
+
+      ══════════════════════════════════════════════════════
+      WEBHOOK ROUTER CREATED
+      ══════════════════════════════════════════════════════
+      Endpoint: POST [webhook URL]
+
+      ROUTING TABLE:
+        [event_name_1] → [action description]
+        [event_name_2] → [action description]
+        [unknown]      → ignored (200 OK, no action)
+
+      CONFIGURE IN POSTHOG:
+        Data Pipelines → Destinations → Webhook
+        URL: [webhook URL]
+        Send all events: enabled
+      ══════════════════════════════════════════════════════
+
+rules:
+  - "Always include a default/fallback case on the Switch node — unknown events must not error"
+  - "Every Switch branch must end with a Respond to Webhook — never leave a branch hanging"
+  - "Switch must route on the event name field — confirm field path from the payload schema"
+  - "Always validate before creating"

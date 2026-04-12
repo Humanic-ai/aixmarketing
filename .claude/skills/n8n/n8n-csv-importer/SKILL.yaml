@@ -1,0 +1,102 @@
+name: n8n-csv-importer
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that watches for CSV file uploads (via webhook,
+    Google Drive, or S3), parses the contacts, validates required fields,
+    and syncs them to Humanic as a new cohort — ready for campaign
+    assignment. Handles deduplication and error logging.
+  trigger_phrases:
+    - "build csv importer in n8n"
+    - "n8n csv to humanic"
+    - "automate csv upload to humanic"
+    - "n8n csv importer"
+    - "sync csv contacts to humanic"
+    - "n8n contact import workflow"
+    - "upload contacts via n8n"
+  when_to_use: >
+    Use when the user wants to automate the process of importing contacts
+    from a CSV file into Humanic — either on a schedule (polling Google Drive
+    or S3) or triggered by a file upload webhook. The workflow validates,
+    deduplicates, and batches the upload to avoid API rate limits.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "batch_processing"
+node_types:
+  - n8n-nodes-base.webhook (v2.1) or n8n-nodes-base.googleDriveTrigger — file source
+  - n8n-nodes-base.extractFromFile — parse CSV binary to JSON rows
+  - n8n-nodes-base.filter — validate required fields (email present, not empty)
+  - n8n-nodes-base.removeDuplicates — deduplicate by email
+  - n8n-nodes-base.splitInBatches — batch contacts (50 per batch)
+  - n8n-nodes-base.httpRequest (v4.4) — Humanic bulk contact create/update API
+  - n8n-nodes-base.slack or n8n-nodes-base.gmail — import completion notification
+
+csv_requirements:
+  required_columns: ["email"]
+  optional_columns: ["first_name", "last_name", "company", "tags", "custom_properties"]
+  encoding: "UTF-8"
+  max_rows_per_batch: 50
+
+instructions:
+  - step: 1
+    name: "Collect Import Brief"
+    content: |
+      Ask the user:
+        - CSV source: webhook upload / Google Drive folder / S3 bucket / manual trigger
+        - Required columns in the CSV (minimum: email)
+        - Humanic cohort to assign imported contacts to (name or ID)
+        - What to do with invalid rows (skip + log / stop whole import)
+        - Notification: Slack or email on completion with count of imported contacts
+
+  - step: 2
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes: ["webhook" or "google drive trigger", "extract from file",
+         "filter", "remove duplicates", "split in batches", "http request",
+         "slack" or "gmail"]
+      3. get_node_types for all found IDs
+      4. Write workflow:
+           - Trigger: webhook (POST with CSV binary) or Google Drive trigger
+           - Extract From File: parse CSV to JSON rows
+           - Filter: remove rows where email is empty or invalid
+           - Remove Duplicates: deduplicate by email field
+           - Split in Batches: 50 contacts per batch, 500ms delay
+           - HTTP Request: Humanic bulk contact upsert API
+           - Notification: send summary (X contacts imported, Y skipped)
+      5. validate_workflow
+      6. create_workflow_from_code
+
+  - step: 3
+    name: "Output Import Summary Format"
+    content: |
+      Notification message format:
+
+      ✅ *CSV Import Complete*
+      File: [filename]
+      Total rows: [n]
+      Imported: [n]
+      Skipped (invalid): [n]
+      Duplicates removed: [n]
+      Cohort: [cohort name]
+      Time: [duration]
+
+rules:
+  - "Always validate email field presence before calling Humanic API"
+  - "Always deduplicate by email — duplicate contacts corrupt cohort counts"
+  - "Always batch in groups of 50 with a delay — never POST all contacts at once"
+  - "Skipped rows must be logged, not silently dropped"
+  - "Always send a completion notification with import counts"
+  - "Use newCredential('Humanic API') for all Humanic API calls"
+  - "Always validate before creating"

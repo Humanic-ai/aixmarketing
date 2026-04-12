@@ -1,0 +1,110 @@
+name: n8n-content-pipeline
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that generates and publishes marketing content
+    on a schedule. Claude generates blog posts, LinkedIn updates, or email
+    newsletters based on a content brief, and the workflow publishes them
+    to the target platform — Substack, LinkedIn, Webflow, or Humanic.
+  trigger_phrases:
+    - "build a content pipeline in n8n"
+    - "automate content publishing with n8n"
+    - "n8n content pipeline"
+    - "schedule content generation in n8n"
+    - "n8n blog post automation"
+    - "n8n linkedin scheduler"
+    - "automated newsletter n8n"
+  when_to_use: >
+    Use when the user wants to automate recurring content creation and
+    publishing — a weekly newsletter, daily LinkedIn post, or scheduled
+    blog content — using Claude for generation and n8n for scheduling
+    and publishing.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "linear_chain"
+node_types:
+  - n8n-nodes-base.scheduleTrigger (v1.3) — weekly/daily schedule
+  - n8n-nodes-base.httpRequest — fetch topic/brief from Google Sheet or Notion
+  - "@n8n/n8n-nodes-langchain.lmChatAnthropic" — Claude content generation
+  - n8n-nodes-base.httpRequest — publish to target platform API
+  - n8n-nodes-base.slack or n8n-nodes-base.gmail — notify team when published
+
+supported_channels:
+  - name: "LinkedIn"
+    api: "LinkedIn API v2 — ugcPosts endpoint"
+    content_type: "text post (under 3000 chars)"
+  - name: "Substack"
+    api: "Substack API — drafts endpoint"
+    content_type: "HTML newsletter"
+  - name: "Humanic email"
+    api: "Humanic MCP — create_campaign + update_step_content"
+    content_type: "MJML email"
+  - name: "Webflow CMS"
+    api: "Webflow API — CMS Items"
+    content_type: "Blog post (rich text)"
+
+instructions:
+  - step: 1
+    name: "Collect Pipeline Brief"
+    content: |
+      Ask the user:
+        - Content type: blog post / LinkedIn post / email newsletter
+        - Publishing cadence: daily / weekly / custom cron
+        - Topic source: static brief / Google Sheet rotation / Notion database
+        - Target platform: LinkedIn / Substack / Humanic / Webflow
+        - Brand voice (or reference the brand brief in session)
+        - Notification: Slack channel or email to alert when published
+
+  - step: 2
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes for: ["schedule trigger", "http request", "anthropic",
+         target platform node, "slack" or "gmail"]
+      3. get_node_types for all found IDs
+      4. Write workflow:
+           - Schedule trigger (cron expression from cadence)
+           - Fetch topic node (Google Sheets / HTTP / manual Set)
+           - Claude generation node with content-type-appropriate prompt
+           - Publish node (platform-specific API call)
+           - Notification node (Slack message or email)
+      5. validate_workflow
+      6. create_workflow_from_code
+
+  - step: 3
+    name: "Output Schedule and URLs"
+    content: |
+      After creation output:
+
+      ══════════════════════════════════════════════════════
+      CONTENT PIPELINE CREATED
+      ══════════════════════════════════════════════════════
+      Channel: [platform]
+      Schedule: [human-readable cadence]
+      Next run: [calculated from cron]
+      Workflow ID: [id]
+      URL: [n8n workflow URL]
+
+      CREDENTIALS NEEDED:
+        - Anthropic API key → credential "Anthropic"
+        - [Platform] API key → credential "[Platform]"
+        - [Notification] → credential "[Slack/Gmail]"
+      ══════════════════════════════════════════════════════
+
+rules:
+  - "Always use Schedule Trigger — never manual trigger for automated content pipelines"
+  - "Claude prompt must include brand voice adjectives from the brief"
+  - "Always send a notification when content is published — silent pipelines get forgotten"
+  - "Use newCredential() for every external API — never hardcode keys"
+  - "Always validate before creating"

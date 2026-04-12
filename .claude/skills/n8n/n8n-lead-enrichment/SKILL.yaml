@@ -1,0 +1,90 @@
+name: n8n-lead-enrichment
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that enriches new signups with company and role
+    data before they enter Humanic. When a new user signs up, the workflow
+    looks up their email domain via Clearbit or Hunter.io, extracts company
+    name, size, industry, and job title, then updates the Humanic contact
+    record with enriched properties for better segmentation.
+  trigger_phrases:
+    - "enrich leads in n8n"
+    - "n8n lead enrichment"
+    - "enrich signups before humanic"
+    - "clearbit enrichment n8n"
+    - "hunter.io n8n workflow"
+    - "n8n contact enrichment"
+    - "enrich email data n8n"
+  when_to_use: >
+    Use when the user wants to enrich new signups with firmographic data
+    (company size, industry, role) before they enter Humanic campaigns.
+    Richer contact data enables better segmentation and more personalized
+    email copy.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "linear_chain"
+node_types:
+  - n8n-nodes-base.webhook (v2.1) — receives new signup event
+  - n8n-nodes-base.httpRequest (v4.4) — Clearbit or Hunter.io enrichment API
+  - n8n-nodes-base.set (v3.4) — extract and normalize enriched fields
+  - n8n-nodes-base.ifElse (v2.2) — skip if enrichment returns no data
+  - n8n-nodes-base.httpRequest — Humanic API: update contact properties
+  - n8n-nodes-base.respondToWebhook (v1.5) — acknowledge signup event
+
+enrichment_sources:
+  - name: "Clearbit Enrichment"
+    endpoint: "https://person.clearbit.com/v2/combined/find?email={email}"
+    auth: "Bearer API key"
+    fields: ["person.name.fullName", "person.employment.title",
+             "company.name", "company.metrics.employees", "company.category.industry"]
+  - name: "Hunter.io"
+    endpoint: "https://api.hunter.io/v2/email-verifier?email={email}&api_key={key}"
+    fields: ["data.first_name", "data.last_name", "data.company"]
+  - name: "Apollo.io"
+    endpoint: "https://api.apollo.io/v1/people/match"
+    fields: ["person.name", "person.title", "person.organization.name",
+             "person.organization.estimated_num_employees"]
+
+instructions:
+  - step: 1
+    name: "Collect Enrichment Brief"
+    content: |
+      Ask the user:
+        - Enrichment source: Clearbit / Hunter.io / Apollo.io / custom API
+        - Which fields to extract and store in Humanic
+        - What to do if enrichment returns no data (skip / tag as unknown)
+        - Trigger: PostHog db_user_created webhook or existing signup webhook
+
+  - step: 2
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes: ["webhook", "http request", "set", "if", "respond to webhook"]
+      3. get_node_types for all found IDs
+      4. Write workflow:
+           - Webhook trigger (POST /enrich/signup)
+           - HTTP Request: enrichment API call with email from payload
+           - If node: check if enrichment returned data
+             - True branch: Set node → normalize fields → HTTP Request: Humanic update
+             - False branch: HTTP Request: Humanic tag as "enrichment_failed"
+           - Respond to Webhook: 200 OK on both branches
+      5. validate_workflow
+      6. create_workflow_from_code
+
+rules:
+  - "Always handle enrichment failure gracefully — never block the signup flow"
+  - "Use ifElse to branch on enrichment success — false branch must still acknowledge webhook"
+  - "Normalize fields in a Set node before calling Humanic — raw API responses vary"
+  - "Use newCredential() for enrichment API and Humanic API — never hardcode keys"
+  - "Always validate before creating"

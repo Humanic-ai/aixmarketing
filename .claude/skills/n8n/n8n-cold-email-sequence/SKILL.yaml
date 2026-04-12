@@ -1,0 +1,91 @@
+name: n8n-cold-email-sequence
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an n8n workflow that takes a lead list (from a Google Sheet, CSV
+    webhook, or Apollo.io export), generates personalized cold email copy
+    using Claude via the Anthropic API, and formats the output as an
+    Instantly.ai campaign upload CSV. Optionally pushes directly to
+    Instantly.ai via their API.
+  trigger_phrases:
+    - "build cold email workflow in n8n"
+    - "n8n cold email sequence"
+    - "generate cold emails in n8n"
+    - "n8n to instantly"
+    - "cold email pipeline n8n"
+    - "automate cold outreach in n8n"
+  when_to_use: >
+    Use when the user wants to automate their cold outreach pipeline end-to-end
+    in n8n — ingest a lead list, generate personalized email copy with Claude,
+    and push the result to Instantly.ai for sending.
+
+n8n_tools_used:
+  - mcp__n8n__get_sdk_reference
+  - mcp__n8n__search_nodes
+  - mcp__n8n__get_node_types
+  - mcp__n8n__validate_workflow
+  - mcp__n8n__create_workflow_from_code
+  - mcp__n8n__publish_workflow
+
+workflow_pattern: "batch_processing"
+node_types:
+  - n8n-nodes-base.webhook or n8n-nodes-base.googleSheets — lead list input
+  - n8n-nodes-base.splitInBatches — process leads in batches of 10
+  - "@n8n/n8n-nodes-langchain.lmChatAnthropic" — Claude for copy generation
+  - n8n-nodes-base.httpRequest — Instantly.ai API upload
+  - n8n-nodes-base.set — format output fields
+
+instructions:
+  - step: 1
+    name: "Collect Workflow Brief"
+    content: |
+      Ask the user:
+        - Lead source: Google Sheet URL / webhook / manual CSV paste
+        - Personalization fields available (company name, title, pain point, etc.)
+        - Campaign goal (book a demo / start a trial / reply to qualify)
+        - Brand voice (3 adjectives)
+        - Whether to push to Instantly.ai automatically or export as CSV
+
+  - step: 2
+    name: "Generate Cold Email Prompt"
+    content: |
+      Before building the workflow, generate the Claude system prompt that
+      will run inside the n8n AI node:
+
+      System prompt template:
+        "You are a cold email copywriter. Given a lead's details, write a
+        single cold email with:
+        - Subject line (under 50 chars, no clickbait)
+        - Opening line personalized to the lead's company or role
+        - One-sentence value prop specific to their pain point
+        - Low-friction CTA (not 'schedule a call' — something easier)
+        - Under 100 words total
+        Brand voice: [adjectives from brief]
+        Output JSON: { subject, body }"
+
+  - step: 3
+    name: "Build Workflow"
+    content: |
+      Follow the n8n MCP protocol:
+
+      1. get_sdk_reference
+      2. search_nodes: ["google sheets", "split in batches", "anthropic",
+         "claude", "http request", "set"]
+      3. get_node_types for all found IDs
+      4. Write workflow:
+           - Trigger: Google Sheets node OR webhook
+           - Split in batches (batchSize: 10, delay: 1000ms)
+           - Claude AI node: generate subject + body JSON per lead
+           - Set node: format as Instantly.ai lead object
+           - HTTP Request: POST to Instantly.ai API (or write to output Sheet)
+      5. validate_workflow
+      6. create_workflow_from_code
+
+rules:
+  - "Always batch leads — never send all at once to avoid rate limits"
+  - "Claude must output valid JSON — add output parser or json parse in Set node"
+  - "Use newCredential('Anthropic') for Claude and newCredential('Instantly API') for upload"
+  - "Always validate before creating"
+  - "If Google Sheets is the source, use executeOnce: true on the Sheets node"
