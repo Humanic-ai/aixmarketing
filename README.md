@@ -86,18 +86,67 @@ Type these directly in Claude Code to generate marketing content:
 | `/blog-post` | Write a full SEO blog post or Substack newsletter |
 | `/linkedin-post` | Write a LinkedIn post optimized for reach |
 
-## Skills
+## Skills (31 skills across 4 domains)
 
-Skills are multi-step agentic workflows that fetch live data, chain reasoning, and produce production-ready output:
+Skills are multi-step agentic workflows organized into domains with **orchestrators** that chain sub-skills automatically.
+
+### Copy Generation
+The **copy-orchestrator** chains: strategy → writing → QA → product enrichment in one run.
 
 | Skill | What It Does |
 |-------|-------------|
-| **welcome-series** | Generates a multi-email welcome/onboarding sequence grounded in live examples |
-| **abandoned-cart** | Writes cart recovery emails after fetching and scoring real-world examples from 5 sources |
-| **re-engagement** | Creates a 3-email win-back sequence for lapsed users with a graceful exit |
-| **email-preview** | Audits email HTML for cross-client compatibility (Gmail, Outlook, Yahoo, Apple Mail) and generates client-safe code |
-| **humanic-auto** | Chains 4 AI models (Claude Sonnet → Gemini Flash → OpenAI o3 → Claude Opus) for the highest-quality email output |
-| **templates** | Email template generation and management |
+| **copy-orchestrator** | Master pipeline — runs all stages sequentially |
+| **copy-strategist** | Builds audience mental model + per-component direction before writing |
+| **copy-writer** | Generates subject lines, preheaders, body, CTAs from strategy |
+| **copy-qa-gate** | AI-slop detector, readability scorer, brand compliance grid |
+| **copy-product-expert** | Validates terminology, enriches CTAs with proof points |
+| **copy-advertiser-lens** | Flags internal jargon that won't land externally |
+| **copy-humanizer** | Strips AI writing tells — 39 patterns across 6 categories |
+| **copy-brief-generator** | Expands a quick prompt into a structured campaign brief |
+| **copy-feedback-processor** | Applies stakeholder revisions, re-runs only affected stages |
+
+### ESP Production
+The **esp-sfmc-orchestrator** routes to the correct SFMC sub-skill by intent.
+
+| Skill | What It Does |
+|-------|-------------|
+| **esp-sfmc-orchestrator** | Intent router for all SFMC tasks |
+| **esp-ampscript-expert** | Writes, explains, debugs AMPscript |
+| **esp-cio-liquid-logic** | Liquid templates for Customer.io |
+| **esp-cio-eds-updater** | Customer.io email design system components |
+| **esp-sfmc-content-builder** | Content Builder blocks, template extraction |
+| **esp-sfmc-data-fetcher** | CLI for querying Data Extensions |
+| **esp-sfmc-sql-generator** | Auto-writes SQL for Query Studio |
+| **esp-sfmc-automation** | Automation Studio — plan, build, troubleshoot |
+| **esp-sfmc-journey-manager** | Journey Builder — design, configure, debug |
+| **esp-sfmc-knowledge** | SFMC concept reference and troubleshooting |
+
+### Performance & Reporting
+
+| Skill | What It Does |
+|-------|-------------|
+| **perf-journey-auditor** | Journey audit — sends, rates, drop-off, recommendations |
+| **perf-sfmc-email-engagement** | Triggered-send metrics via SFMC Data Views |
+| **perf-klaviyo** | Flows, segments, campaigns, metrics in Klaviyo |
+
+### Process & QA
+
+| Skill | What It Does |
+|-------|-------------|
+| **qa-email-design-reviewer** | Scores HTML for layout, hierarchy, render-readiness |
+| **qa-email-production-process** | Pre-send launch checklist (copy, design, data, legal) |
+| **qa-incident-tracker** | RCA logging — 5 Whys, incident report, prevention plan |
+
+### Lifecycle Campaigns (standalone)
+
+| Skill | What It Does |
+|-------|-------------|
+| **welcome-series** | Multi-email welcome sequence grounded in live examples |
+| **abandoned-cart** | Cart recovery emails from 5 scored real-world sources |
+| **re-engagement** | 3-email win-back sequence with graceful exit |
+| **email-preview** | Cross-client HTML audit and client-safe code generation |
+| **humanic-auto** | 4-model chain (Sonnet → Gemini → OpenAI → Opus) |
+| **templates** | Template browsing, application, and management |
 
 ---
 
@@ -109,24 +158,49 @@ Skills are multi-step agentic workflows that fetch live data, chain reasoning, a
 ```
 This loads your brand voice, ICP, positioning, and tone into session context. Every subsequent command inherits it.
 
-### 2. Generate lifecycle content
+### 2. Run the copy pipeline
 ```
-Write an abandoned cart email for Humanic
+Write email copy for our abandoned cart flow
 ```
-The `abandoned-cart` skill activates automatically — it fetches live examples from Really Good Emails, Email Love, Good Email Copy, Litmus, and the RGE Awards, scores them against your brand, picks the top 5, and writes a complete email with subject lines, preview text, body, and CTA.
+The **copy-orchestrator** chains 4+ stages automatically:
+```
+strategist → writer → QA gate → product expert → [advertiser lens] → [humanizer]
+```
+Each stage's output feeds the next. The QA gate catches AI slop, readability issues, and brand violations. The product expert enriches CTAs with proof points.
 
-### 3. Preview across email clients
+### 3. Generate lifecycle content
 ```
-Preview my email
+Write a welcome email for new trial users
 ```
-The `email-preview` skill audits your email against Gmail, Yahoo, Outlook desktop (Word engine), Outlook.com, and Apple Mail — then generates production-ready HTML with inline styles, VML buttons for Outlook, dark mode support, and a per-client compatibility checklist.
+Standalone skills like `welcome-series`, `abandoned-cart`, and `re-engagement` fetch live examples from Really Good Emails, Email Love, Litmus, and more — score them against your brand — and produce complete emails.
 
-### 4. Push to Humanic
+### 4. Work with your ESP
+```
+Write AMPscript to personalize the email with the user's plan name
+```
+The **SFMC orchestrator** routes to the right sub-skill. Or invoke ESP skills directly:
+- `Write SQL for Query Studio` → esp-sfmc-sql-generator
+- `Customer.io Liquid for conditional content` → esp-cio-liquid-logic
+- `Build a journey for onboarding` → esp-sfmc-journey-manager
+
+### 5. QA and launch
+```
+Launch checklist for this email
+```
+The `qa-email-production-process` skill runs a 40+ point checklist across copy, design, links, data, deliverability, and legal compliance — producing a GO / NO-GO verdict.
+
+### 6. Push to Humanic
 With the Humanic MCP server connected, you can list campaigns, create cohorts, and push content directly:
 ```
 List my campaigns on Humanic
 Create a new welcome campaign for trial users
 ```
+
+### 7. Audit performance
+```
+Audit my welcome journey
+```
+The `perf-journey-auditor` skill benchmarks your metrics, identifies drop-off points, and gives specific recommendations.
 
 ---
 
@@ -135,25 +209,44 @@ Create a new welcome campaign for trial users
 ```
 aixmarketing/
 ├── .claude/
-│   ├── commands/          ← Slash commands (markdown prompts)
-│   │   ├── brand-brief.md
-│   │   ├── cold-email.md
-│   │   ├── email-sequence.md
-│   │   ├── google-ad.md
-│   │   ├── meta-ad.md
-│   │   ├── blog-post.md
-│   │   └── linkedin-post.md
-│   └── skills/            ← Multi-step agentic skills (YAML)
-│       ├── abandoned-cart/
-│       ├── email-preview/
-│       ├── humanic-auto-claude-gemini-openai-claude-opus/
-│       ├── re-engagement/
-│       ├── templates/
-│       └── welcome-series/
-├── Banners/               ← Social media and event banners
-├── CLAUDE.md              ← Claude Code workspace instructions
-├── CONTRIBUTING.md        ← Contribution guidelines
-├── .env.example           ← Environment variable template
+│   ├── commands/              ← Slash commands (7 markdown prompts)
+│   └── skills/                ← 31 agentic skills organized by domain
+│       ├── copy-orchestrator/     ← Copy pipeline controller
+│       ├── copy-strategist/       ← Audience model + direction
+│       ├── copy-writer/           ← Email copy generation
+│       ├── copy-qa-gate/          ← Quality gate (slop, readability, brand)
+│       ├── copy-product-expert/   ← Product accuracy + proof enrichment
+│       ├── copy-advertiser-lens/  ← Jargon detection for external audiences
+│       ├── copy-humanizer/        ← AI-tell removal (39 patterns)
+│       ├── copy-brief-generator/  ← Quick prompt → full brief
+│       ├── copy-feedback-processor/ ← Stakeholder revision handler
+│       ├── esp-sfmc-orchestrator/ ← SFMC intent router
+│       ├── esp-ampscript-expert/  ← AMPscript for SFMC
+│       ├── esp-cio-liquid-logic/  ← Liquid for Customer.io
+│       ├── esp-cio-eds-updater/   ← CIO design system components
+│       ├── esp-sfmc-content-builder/ ← Content Builder management
+│       ├── esp-sfmc-data-fetcher/ ← Data Extension queries
+│       ├── esp-sfmc-sql-generator/ ← Query Studio SQL
+│       ├── esp-sfmc-automation/   ← Automation Studio CLI
+│       ├── esp-sfmc-journey-manager/ ← Journey Builder CLI
+│       ├── esp-sfmc-knowledge/    ← SFMC reference + troubleshooting
+│       ├── perf-journey-auditor/  ← Journey performance audit
+│       ├── perf-sfmc-email-engagement/ ← SFMC metrics via Data Views
+│       ├── perf-klaviyo/          ← Klaviyo flows, segments, metrics
+│       ├── qa-email-design-reviewer/ ← HTML design scoring
+│       ├── qa-email-production-process/ ← Pre-send launch checklist
+│       ├── qa-incident-tracker/   ← RCA logging for send failures
+│       ├── abandoned-cart/        ← Cart recovery from live examples
+│       ├── email-preview/         ← Cross-client HTML audit
+│       ├── humanic-auto-.../      ← 4-model AI chain
+│       ├── re-engagement/         ← Win-back sequence
+│       ├── templates/             ← Template management
+│       └── welcome-series/        ← Welcome/onboarding sequence
+├── Banners/                   ← Social media and event banners
+├── CLAUDE.md                  ← Claude Code workspace instructions
+├── CONTRIBUTING.md            ← Contribution guidelines
+├── LICENSE                    ← MIT
+├── .env.example               ← Environment variable template
 ├── .gitignore
 ├── package.json
 └── README.md

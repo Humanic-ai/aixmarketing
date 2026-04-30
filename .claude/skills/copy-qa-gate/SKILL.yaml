@@ -1,0 +1,171 @@
+name: copy-qa-gate
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Deterministic quality gate for email copy. Runs an AI-slop detector,
+    readability scorer, brand compliance grid, and advertiser-lens scan.
+    Produces a scorecard with pass/fail per dimension and auto-fixes
+    flagged issues.
+  trigger_phrases:
+    - "QA this email"
+    - "check my email copy"
+    - "run QA on this"
+    - "slop check"
+    - "is this copy good"
+    - "email quality check"
+    - "review my copy"
+    - "copy QA"
+  when_to_use: >
+    Use this skill after email copy is drafted to catch quality issues
+    before production. It runs four deterministic checks: AI-slop detection
+    (cliches, filler, hedge words), readability scoring, brand voice
+    compliance, and an advertiser-lens scan for internal jargon. Runs as
+    Stage 3 in the copy-orchestrator pipeline, or standalone on any draft.
+
+chain_position:
+  pipeline: "copy-orchestrator"
+  stage: 3
+  receives_from: "copy-writer"
+  outputs_to: "copy-product-expert"
+
+instructions:
+  - step: 1
+    name: "AI-Slop Detection"
+    check_name: "SLOP DETECTOR"
+    patterns:
+      filler_phrases:
+        - "in today's fast-paced"
+        - "it's no secret that"
+        - "at the end of the day"
+        - "in the ever-evolving"
+        - "now more than ever"
+        - "game-changer"
+        - "cutting-edge"
+        - "best-in-class"
+        - "take it to the next level"
+        - "leverage"
+        - "synergy"
+        - "unlock the power"
+        - "don't miss out"
+        - "excited to announce"
+        - "we're thrilled"
+      hedge_words:
+        - "arguably"
+        - "somewhat"
+        - "relatively"
+        - "fairly"
+        - "quite"
+        - "perhaps maybe"
+        - "it could be said"
+      ai_writing_tells:
+        - "let's dive in"
+        - "without further ado"
+        - "here's the thing"
+        - "the bottom line is"
+        - "in conclusion"
+        - "to sum up"
+        - "importantly"
+        - "interestingly"
+        - "it's worth noting"
+        - "needless to say"
+      over_formality:
+        - "I hope this email finds you well"
+        - "I wanted to reach out"
+        - "please do not hesitate"
+        - "I trust this meets your expectations"
+        - "for your convenience"
+    output_format: |
+      SLOP DETECTOR — [PASS / FAIL]
+      Patterns found: [count]
+      Flagged:
+      - Line: "[exact text]" → Issue: [category] → Fix: "[suggested replacement]"
+
+  - step: 2
+    name: "Readability Scoring"
+    check_name: "READABILITY"
+    metrics:
+      - name: "Average sentence length"
+        target: "< 18 words"
+        fail_threshold: "> 25 words"
+      - name: "Paragraph length"
+        target: "< 3 sentences"
+        fail_threshold: "> 5 sentences"
+      - name: "Passive voice ratio"
+        target: "< 10%"
+        fail_threshold: "> 20%"
+      - name: "Grade level"
+        target: "6th–8th grade"
+        method: "Flesch-Kincaid approximation"
+      - name: "CTA clarity"
+        target: "One primary CTA, verb-first, < 5 words"
+    output_format: |
+      READABILITY — [PASS / FAIL]
+      Avg sentence length: [N words] — [PASS/FAIL]
+      Max paragraph: [N sentences] — [PASS/FAIL]
+      Passive voice: [N%] — [PASS/FAIL]
+      Grade level: [N] — [PASS/FAIL]
+      CTA clarity: [PASS/FAIL] — [notes]
+
+  - step: 3
+    name: "Brand Compliance Grid"
+    check_name: "BRAND COMPLIANCE"
+    checks:
+      - "Voice adjectives match: does the copy sound like [adj1], [adj2], [adj3]?"
+      - "Write-like reference: could the reference person/brand have written this?"
+      - "Never-sound-like violations: does it sound like what the brand avoids?"
+      - "Tone consistency: is the tone uniform or does it shift mid-email?"
+      - "Brand name usage: correct casing, no abbreviations unless standard"
+    output_format: |
+      BRAND COMPLIANCE — [PASS / FAIL]
+      Voice match: [adj1: PASS] [adj2: PASS] [adj3: FAIL — sounds too formal]
+      Write-like check: [PASS/FAIL — notes]
+      Never-sound-like: [PASS/FAIL — violations listed]
+      Tone consistency: [PASS/FAIL]
+      Brand name: [PASS/FAIL]
+
+  - step: 4
+    name: "Advertiser Lens Quick Scan"
+    check_name: "ADVERTISER LENS"
+    content: |
+      Light-touch scan for internal jargon and assumptions that wouldn't
+      land with external audiences. Full advertiser-lens skill runs as a
+      separate stage if needed.
+    flags:
+      - "Internal acronyms not defined"
+      - "Feature names without context (assumes reader knows the product)"
+      - "Industry jargon that a new prospect wouldn't understand"
+      - "Assumed knowledge of prior emails or interactions"
+    output_format: |
+      ADVERTISER LENS (quick scan) — [PASS / FAIL]
+      Jargon found: [list with suggested plain-language alternatives]
+
+  - step: 5
+    name: "Scorecard & Auto-Fix"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 3 — QA GATE SCORECARD
+      ══════════════════════════════════════════
+
+      | Check              | Result | Issues |
+      |--------------------|--------|--------|
+      | Slop Detector      | [P/F]  | [N]    |
+      | Readability        | [P/F]  | [N]    |
+      | Brand Compliance   | [P/F]  | [N]    |
+      | Advertiser Lens    | [P/F]  | [N]    |
+
+      OVERALL: [PASS — ready for production / FAIL — issues auto-fixed below]
+
+      AUTO-FIXED COPY:
+      [Complete revised email with all flagged issues resolved]
+
+      CHANGES MADE:
+      - [Line-by-line list of what changed and why]
+
+rules:
+  - "Every check runs — never skip a dimension even if the copy looks clean"
+  - "Auto-fix every flagged issue — don't just report, also resolve"
+  - "The revised copy preserves meaning while fixing quality — never change the strategic intent"
+  - "If brand brief is missing, skip brand compliance and note it was skipped"
+  - "Slop detection is deterministic — if the pattern matches, it's flagged regardless of context"

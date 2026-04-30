@@ -1,0 +1,109 @@
+name: copy-writer
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Generates subject lines, preheaders, body copy, and CTAs grounded in
+    the strategist's direction and a past-sends corpus. Produces complete
+    email copy ready for QA.
+  trigger_phrases:
+    - "write the email"
+    - "generate email copy"
+    - "draft the email"
+    - "write subject lines and body"
+    - "email copywriting"
+    - "write the copy"
+  when_to_use: >
+    Use this skill to generate email copy from a strategic direction. It
+    follows the per-component constraints from the strategist and writes
+    subject lines, preheader, hook, body, and CTA. Runs as Stage 2 in the
+    copy-orchestrator pipeline, or standalone if the user provides their
+    own direction.
+
+chain_position:
+  pipeline: "copy-orchestrator"
+  stage: 2
+  receives_from: "copy-strategist"
+  outputs_to: "copy-qa-gate"
+
+instructions:
+  - step: 1
+    name: "Consume Strategy Input"
+    content: |
+      Read the strategist output (or user-provided direction) and extract:
+      - Audience mental model (who, where, what they're thinking)
+      - Email job statement (one verb + outcome)
+      - Per-component direction (subject, preheader, hook, body, CTA)
+      - Brand voice adjectives and write-like reference
+      - Past-sends context (what was already said in prior emails)
+
+  - step: 2
+    name: "Check Past-Sends Corpus"
+    content: |
+      If the user has provided examples of past emails (pasted, linked, or
+      in a corpus file), scan them for:
+      - Subject line patterns that performed well (opens)
+      - CTA copy that drove clicks
+      - Phrases and tone that define the brand's real voice (not aspirational)
+      - Topics and angles already covered (to avoid repetition)
+      Note: If no corpus is available, proceed using the brand brief voice.
+
+  - step: 3
+    name: "Write the Email"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 2 — COPY WRITER
+      ══════════════════════════════════════════
+
+      SUBJECT LINES (3 variants, following strategist direction):
+      1. [Variant A — primary hook type from direction]
+      2. [Variant B — alternative angle]
+      3. [Variant C — creative/unexpected]
+
+      PREHEADER:
+      [80–100 characters, following the relationship directive]
+
+      EMAIL BODY:
+      [Opening hook — mirrors reader's state per strategist direction]
+
+      [Core message — follows the body structure directive
+       (problem→solution / story→insight / feature→benefit / proof→ask)]
+
+      [Proof point — type specified by strategist]
+
+      [CTA — button copy + surrounding context, following CTA direction]
+
+      [Optional P.S. — secondary hook, human moment, or next-email tease]
+
+      WRITER NOTES:
+      - Strategist direction followed: [which constraints shaped each section]
+      - Past-sends patterns applied: [what was borrowed from corpus, if any]
+      - Deliberate choices: [what was intentionally NOT included and why]
+      - Word count: [total body word count]
+
+  - step: 4
+    name: "Variant Generation"
+    content: |
+      After the primary email, offer:
+      - Tone variant: same structure, different voice register (warmer / sharper / more casual)
+      - Length variant: condensed version (<80 words) or expanded version (+50%)
+      - Angle variant: same job, different proof type or hook approach
+
+craft_rules:
+  - "First sentence must earn the second — no warm-up, no throat-clearing"
+  - "Use 'so you can' benefit framing where it fits naturally"
+  - "One idea per paragraph — max 3 sentences per paragraph"
+  - "CTA button copy: 2–4 words, verb-first preferred"
+  - "Never use: 'excited to announce', 'don't miss out', 'synergy', 'leverage', 'unlock'"
+  - "Never start with 'I hope this email finds you well' or any variant"
+  - "Contractions are default unless brand voice is formal"
+  - "Numbers > words for quantities (42 ideas, not many ideas)"
+  - "If the email has no proof point, flag it in writer notes — don't invent one"
+
+rules:
+  - "Always follow the strategist's per-component direction — don't freelance"
+  - "If no strategist output is available, ask for minimum direction before writing"
+  - "Show writer notes after every draft — transparency on choices made"
+  - "Past-sends corpus overrides brand brief when they conflict on voice"
+  - "Never pad copy to hit a word count — shorter is better if the job is done"

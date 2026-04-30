@@ -1,0 +1,113 @@
+name: copy-product-expert
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Validates product terminology, recommends help center links, and enriches
+    CTAs with proof points. Ensures every claim in the email is accurate and
+    every CTA is backed by evidence.
+  trigger_phrases:
+    - "check product accuracy"
+    - "enrich the email with proof"
+    - "validate product claims"
+    - "add proof points"
+    - "product review email"
+    - "fact check the copy"
+  when_to_use: >
+    Use this skill after QA to ensure product terminology is correct, claims
+    are substantiated, CTAs have supporting proof, and help center or
+    documentation links are recommended where relevant. Runs as Stage 4 in
+    the copy-orchestrator pipeline.
+
+chain_position:
+  pipeline: "copy-orchestrator"
+  stage: 4
+  receives_from: "copy-qa-gate"
+  outputs_to: "copy-advertiser-lens (optional) or final output"
+
+instructions:
+  - step: 1
+    name: "Product Terminology Audit"
+    content: |
+      Scan the email for:
+      - Product names: correct casing, spelling, trademark symbols if required
+      - Feature names: match official naming (not colloquial or outdated names)
+      - Plan/tier names: correct plan names and what's included
+      - Pricing claims: verify against known pricing (flag if unverifiable)
+      - Technical terms: used correctly and consistently
+    output_format: |
+      TERMINOLOGY AUDIT
+      ─────────────────
+      [term]: [CORRECT / INCORRECT — should be "X"] / [UNVERIFIABLE — flag for human review]
+
+  - step: 2
+    name: "Proof Point Enrichment"
+    content: |
+      For each claim or benefit statement in the email, assess:
+      - Is it backed by a specific proof point? (stat, case study, customer quote)
+      - If not, recommend a proof type that would strengthen it
+      - If a proof point exists, is it specific enough? ("42% improvement"
+        beats "significant improvement")
+    output_format: |
+      PROOF ENRICHMENT
+      ─────────────────
+      Claim: "[claim text]"
+      Current proof: [none / weak / strong]
+      Recommendation: [add specific stat / add customer name / add timeframe / sufficient]
+
+  - step: 3
+    name: "CTA Enhancement"
+    content: |
+      Review each CTA for:
+      - Does the CTA destination match the email's job? (don't send to homepage
+        when the email is about a specific feature)
+      - Is there a friction reducer near the CTA? (free trial, no credit card,
+        money-back guarantee, time commitment)
+      - Is the button copy action-oriented? (verb-first, specific)
+    output_format: |
+      CTA REVIEW
+      ──────────
+      Primary CTA: "[button text]" → [destination]
+      Friction reducer: [present / missing — recommend: "X"]
+      Button copy: [strong / improve to: "X"]
+
+  - step: 4
+    name: "Help Center & Resource Links"
+    content: |
+      Identify opportunities to link to:
+      - Help center articles for features mentioned
+      - Documentation for technical claims
+      - Case studies or testimonials referenced
+      - Getting started guides if onboarding-related
+      Note: recommend links by topic — the user fills in actual URLs.
+    output_format: |
+      RECOMMENDED LINKS
+      ─────────────────
+      - After "[text in email]": link to [help article about X]
+      - Near CTA: link to [case study / getting started guide]
+
+  - step: 5
+    name: "Deliver Enriched Copy"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 4 — PRODUCT EXPERT
+      ══════════════════════════════════════════
+
+      ENRICHED EMAIL:
+      [Complete email with terminology fixes, proof points added,
+       CTA enhanced, and link recommendations inline as [LINK: topic] markers]
+
+      ENRICHMENT SUMMARY:
+      - Terminology fixes: [N changes]
+      - Proof points added: [N additions]
+      - CTA improvements: [what changed]
+      - Links recommended: [N links]
+      - Items flagged for human review: [list anything unverifiable]
+
+rules:
+  - "Never invent proof points — recommend the type of proof needed, don't fabricate stats"
+  - "Terminology must match the brand's actual product naming — check website/docs if accessible"
+  - "Flag unverifiable claims for human review rather than silently passing them"
+  - "Link recommendations are by topic — don't guess URLs"
+  - "CTA destination should match email job — flag mismatches"

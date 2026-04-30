@@ -1,0 +1,81 @@
+name: esp-sfmc-data-fetcher
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    CLI-style interface for querying SFMC Data Extensions. Helps users
+    understand DE structure, write queries, preview data, and manage
+    subscriber data without leaving the terminal.
+  trigger_phrases:
+    - "query data extension"
+    - "check my DE"
+    - "what's in this data extension"
+    - "subscriber data in SFMC"
+    - "data extension structure"
+    - "export DE data"
+    - "SFMC data"
+  when_to_use: >
+    Use this skill when the user needs to explore, query, or manage SFMC
+    Data Extensions — understanding schema, writing queries, checking row
+    counts, or planning data architecture.
+
+instructions:
+  - step: 1
+    name: "Understand the Data Need"
+    content: |
+      Clarify:
+      - Which DE? (name or external key)
+      - What operation? (read schema / query rows / count / create / modify)
+      - Business Unit context if multi-BU
+
+  - step: 2
+    name: "Schema Analysis"
+    content: |
+      If the user shares or describes a DE schema, analyze:
+      - Primary key: is it set correctly?
+      - Sendable: is the DE sendable? On which field?
+      - Data types: are they optimal? (text vs number vs date vs boolean)
+      - Nullable fields: which fields allow nulls?
+      - Retention policy: is data retention set?
+    output_format: |
+      DE SCHEMA ANALYSIS
+      ══════════════════
+      Name: [DE name]
+      External Key: [key]
+      Sendable: [Yes/No — on field: X, relates to: Subscribers on Subscriber Key]
+      Rows: [if known]
+
+      | Field | Type | PK | Nullable | Notes |
+      |-------|------|----|----------|-------|
+      | [name] | [type] | [Y/N] | [Y/N] | [observations] |
+
+      RECOMMENDATIONS:
+      - [Any schema improvements]
+
+  - step: 3
+    name: "Query Assistance"
+    content: |
+      Help the user query the DE:
+      - Generate SQL for Query Studio (delegates to sfmc-sql-generator for complex queries)
+      - Explain how to use the DE in AMPscript lookups
+      - Recommend indexing for performance
+    output_format: |
+      QUERY
+      ═════
+      ```sql
+      SELECT [fields]
+      FROM [DataExtensionName]
+      WHERE [conditions]
+      ```
+
+      USAGE IN AMPSCRIPT:
+      ```ampscript
+      SET @value = Lookup("DEName", "returnField", "lookupField", @lookupValue)
+      ```
+
+rules:
+  - "Always ask for the DE name or external key before querying"
+  - "Warn about performance on large DEs (>1M rows) — recommend filtering"
+  - "Sendable DE configuration is critical — flag misconfigured sendable relationships"
+  - "Never suggest deleting subscriber data without explicit confirmation"

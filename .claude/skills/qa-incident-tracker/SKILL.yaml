@@ -1,0 +1,136 @@
+name: qa-incident-tracker
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    RCA logging for email incidents — wrong audience, broken links,
+    rendering failures, data leaks, double sends, and other production
+    issues. Structures the incident, identifies root cause, and produces
+    a prevention plan.
+  trigger_phrases:
+    - "email incident"
+    - "something went wrong with the send"
+    - "wrong email sent"
+    - "broken email"
+    - "email RCA"
+    - "post-mortem"
+    - "what went wrong"
+    - "incident report"
+    - "email failure"
+  when_to_use: >
+    Use this skill when an email send has gone wrong — wrong audience,
+    broken links, rendering failure, data exposure, double send, or any
+    production incident. It structures the incident report, identifies
+    root cause, documents impact, and creates a prevention plan.
+
+instructions:
+  - step: 1
+    name: "Capture the Incident"
+    content: |
+      Collect immediately:
+      - What happened? (one sentence)
+      - When was it discovered? (timestamp)
+      - Who discovered it? (team member or automated alert)
+      - What was the expected behavior?
+      - What was the actual behavior?
+      - How many recipients were affected?
+      - Is the issue ongoing or contained?
+
+  - step: 2
+    name: "Classify the Incident"
+    severity_levels:
+      critical:
+        description: "Data exposure, PII leak, regulatory violation, or massive wrong-audience send"
+        response_time: "Immediately — all hands"
+        examples: ["Subscriber data visible to other subscribers", "Send to suppressed/unsubscribed contacts", "Financial data in wrong email"]
+      high:
+        description: "Broken email to large audience, wrong content, wrong offer/pricing"
+        response_time: "Within 1 hour"
+        examples: ["Broken rendering for >50% of recipients", "Wrong discount code", "Dead CTA link on promotional email"]
+      medium:
+        description: "Partial rendering issues, minor content errors, wrong personalization"
+        response_time: "Same day"
+        examples: ["Name personalization showing fallback for 10% of audience", "Image not loading in Outlook only", "Footer link broken"]
+      low:
+        description: "Cosmetic issues, minor typos, non-critical link issues"
+        response_time: "Next business day"
+        examples: ["Typo in body copy", "Slight alignment issue on mobile", "Secondary link goes to slightly wrong page"]
+
+  - step: 3
+    name: "Root Cause Analysis"
+    framework: "5 Whys"
+    content: |
+      Walk through the 5 Whys:
+      1. Why did [the incident] happen? → [proximate cause]
+      2. Why did [proximate cause] happen? → [contributing factor]
+      3. Why did [contributing factor] happen? → [deeper cause]
+      4. Why did [deeper cause] happen? → [process gap]
+      5. Why did [process gap] exist? → [root cause]
+
+      Classify the root cause:
+      - Human error (copy/paste, wrong field, skip a step)
+      - Process gap (no checklist, no review step, unclear ownership)
+      - Tool failure (ESP bug, integration error, data sync issue)
+      - Data issue (stale data, missing field, wrong segment logic)
+      - Communication (misunderstood brief, unclear approval, timezone confusion)
+
+  - step: 4
+    name: "Generate the Incident Report"
+    output_format: |
+      INCIDENT REPORT
+      ═══════════════
+
+      INCIDENT ID: [INC-YYYY-MM-DD-NNN]
+      SEVERITY: [CRITICAL / HIGH / MEDIUM / LOW]
+      STATUS: [OPEN / CONTAINED / RESOLVED / CLOSED]
+
+      SUMMARY: [one sentence — what happened]
+
+      TIMELINE:
+      | Time | Event |
+      |------|-------|
+      | [HH:MM] | [what happened] |
+      | [HH:MM] | [when discovered] |
+      | [HH:MM] | [containment action taken] |
+      | [HH:MM] | [resolution] |
+
+      IMPACT:
+      - Recipients affected: [N]
+      - Revenue impact: [estimated / unknown]
+      - Brand impact: [description]
+      - Regulatory risk: [none / potential / confirmed]
+
+      ROOT CAUSE (5 Whys):
+      1. [Why 1]
+      2. [Why 2]
+      3. [Why 3]
+      4. [Why 4]
+      5. [Why 5 — root cause]
+
+      ROOT CAUSE CATEGORY: [human error / process gap / tool failure / data issue / communication]
+
+      CORRECTIVE ACTIONS:
+      | Action | Owner | Due Date | Status |
+      |--------|-------|----------|--------|
+      | [Immediate fix] | [who] | [when] | [done/pending] |
+      | [Process change] | [who] | [when] | [pending] |
+      | [Preventive measure] | [who] | [when] | [pending] |
+
+      PREVENTION:
+      - Checklist update: [what to add to qa-email-production-process]
+      - Automation: [what can be automated to prevent recurrence]
+      - Training: [what the team needs to know]
+
+      COMMUNICATION:
+      - Internal: [who was notified and when]
+      - External: [apology email needed? correction send?]
+      - Template: [draft apology if needed]
+
+rules:
+  - "Blameless RCA — focus on process and systems, not individuals"
+  - "The 5 Whys must reach a systemic root cause, not stop at 'someone made a mistake'"
+  - "Every incident must have at least one preventive action, not just a fix"
+  - "Critical and high severity incidents require an external communication plan"
+  - "Link corrective actions to specific checklist updates in qa-email-production-process"
+  - "If the incident reveals a gap in the production checklist, update that skill too"

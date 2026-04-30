@@ -1,0 +1,119 @@
+name: perf-klaviyo
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Query and manage Klaviyo flows, segments, campaigns, and metrics.
+    Helps analyze flow performance, build segments, review campaign
+    results, and optimize email/SMS strategy within Klaviyo.
+  trigger_phrases:
+    - "Klaviyo"
+    - "Klaviyo flow"
+    - "Klaviyo segment"
+    - "Klaviyo campaign"
+    - "Klaviyo metrics"
+    - "Klaviyo performance"
+    - "flow performance Klaviyo"
+  when_to_use: >
+    Use this skill when the user works with Klaviyo — analyzing flow
+    performance, building segments, reviewing campaign metrics, or
+    planning email/SMS strategy.
+
+instructions:
+  - step: 1
+    name: "Identify the Task"
+    content: |
+      Classify the request:
+      - Flow analysis: review performance, identify drop-offs, optimize
+      - Segment building: define segment logic, recommend criteria
+      - Campaign review: analyze send performance, compare A/B tests
+      - Strategy: recommend flows, triggers, or segmentation approach
+
+  - step: 2
+    name: "Flow Analysis"
+    content: |
+      When reviewing a Klaviyo flow:
+      - Map the flow structure (trigger → emails/SMS → splits → delays)
+      - Analyze per-step metrics (open rate, click rate, conversion, revenue)
+      - Identify bottlenecks and drop-off points
+      - Compare against benchmarks for the flow type
+    output_format: |
+      KLAVIYO FLOW AUDIT
+      ══════════════════
+
+      FLOW: [name]
+      TRIGGER: [event or segment entry]
+      STATUS: [Live / Draft / Manual]
+
+      FLOW MAP:
+      [Trigger] → [Delay] → [Email 1] → [Split] → [Email 2A / 2B] → ...
+
+      PER-STEP METRICS:
+      | Step | Type | Recipients | Opens | Open% | Clicks | CTR% | Revenue |
+      |------|------|-----------|-------|-------|--------|------|---------|
+
+      BOTTLENECKS:
+      - [Step X]: [what's wrong + specific fix]
+
+      RECOMMENDATIONS:
+      1. [Highest impact optimization]
+      2. [Second optimization]
+      3. [Third optimization]
+
+  - step: 3
+    name: "Segment Building"
+    content: |
+      When building segments:
+      - Define conditions using Klaviyo's segment logic
+      - Recommend property-based vs behavior-based segmentation
+      - Estimate segment size impact
+      - Suggest suppression segments for exclusion
+    output_format: |
+      SEGMENT DEFINITION
+      ══════════════════
+
+      NAME: [descriptive name]
+      PURPOSE: [what this segment is for]
+      TYPE: [Static / Dynamic]
+
+      CONDITIONS:
+      - [Condition 1]: [property/event] [operator] [value]
+      AND/OR
+      - [Condition 2]: [property/event] [operator] [value]
+
+      EXCLUSIONS:
+      - Suppress if: [condition — e.g., unsubscribed, bounced, purchased recently]
+
+      ESTIMATED SIZE: [if estimatable from context]
+      USE IN: [which flows or campaigns this segment feeds]
+
+  - step: 4
+    name: "Campaign Review"
+    content: |
+      When reviewing campaign performance:
+      - Compare against Klaviyo industry benchmarks
+      - Analyze A/B test results with statistical significance
+      - Review send time, subject line, and content performance
+      - Recommend next campaign optimizations
+
+reference:
+  key_flows:
+    - "Welcome Series — triggered on list subscription"
+    - "Abandoned Cart — triggered on Started Checkout + no Placed Order"
+    - "Browse Abandonment — triggered on Viewed Product + no Started Checkout"
+    - "Post-Purchase — triggered on Placed Order"
+    - "Winback — triggered on time since last Placed Order"
+    - "Sunset / Re-engagement — triggered on engagement decline"
+  segment_best_practices:
+    - "Engaged segment: opened or clicked in last 90 days"
+    - "VIP segment: top 10% by revenue or order count"
+    - "At-risk segment: previously engaged, no activity in 60 days"
+    - "New subscriber segment: subscribed in last 30 days"
+
+rules:
+  - "Always compare against Klaviyo's published industry benchmarks when available"
+  - "Flow optimizations should focus on revenue impact, not just open/click rates"
+  - "Segment definitions should include suppression logic to prevent over-sending"
+  - "Recommend A/B testing for any optimization suggestion"
+  - "Distinguish between flow emails (triggered) and campaign emails (broadcast) — they have different benchmarks"

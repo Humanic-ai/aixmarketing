@@ -1,0 +1,126 @@
+name: qa-email-design-reviewer
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Scores email HTML for layout quality, visual hierarchy, component
+    fidelity, render-readiness, accessibility, and dark mode support.
+    Produces a structured review with scores per dimension and specific
+    fixes.
+  trigger_phrases:
+    - "review my email design"
+    - "score this email HTML"
+    - "email design review"
+    - "check my email layout"
+    - "is this email render-ready"
+    - "email accessibility check"
+    - "design QA"
+  when_to_use: >
+    Use this skill when the user has email HTML and wants a design-focused
+    review — not copy quality (that's copy-qa-gate) but layout, hierarchy,
+    component integrity, responsiveness, and rendering readiness.
+
+instructions:
+  - step: 1
+    name: "Collect the Email"
+    content: |
+      Accept:
+      - Raw HTML (pasted or file path)
+      - Screenshot + HTML
+      - URL to a hosted preview
+      Also confirm: what ESP will this render in? (SFMC, CIO, Klaviyo, Humanic, other)
+
+  - step: 2
+    name: "Run the Design Review"
+    dimensions:
+      layout:
+        weight: 20
+        checks:
+          - "Table-based structure for Outlook compatibility"
+          - "600px max-width centered container"
+          - "Mobile responsive: single column on <480px"
+          - "Content hierarchy: header → body → CTA → footer"
+          - "White space: adequate padding between sections (20-30px)"
+          - "No orphaned elements outside the main container"
+      visual_hierarchy:
+        weight: 20
+        checks:
+          - "Clear visual flow: eye moves top-to-bottom naturally"
+          - "One primary CTA visually dominant (size, color, contrast)"
+          - "Heading hierarchy: H1 for main message, H2 for sections"
+          - "Text contrast ratio: 4.5:1 minimum (WCAG AA)"
+          - "Image-to-text ratio: not image-only (renders blank with images off)"
+      component_fidelity:
+        weight: 20
+        checks:
+          - "CTA button: uses bulletproof button pattern (not image-based)"
+          - "Images: width + height attributes set, alt text present"
+          - "Links: all hrefs are valid (not placeholder #)"
+          - "Footer: includes unsubscribe, physical address, social links"
+          - "Preheader: hidden preheader text present and padded"
+      render_readiness:
+        weight: 20
+        checks:
+          - "Inline CSS: all critical styles are inline (not head-only)"
+          - "MSO conditionals: present for Outlook-specific rendering"
+          - "VML buttons: Outlook fallback for rounded CTA buttons"
+          - "Font stack: system fonts as fallback (Arial, Helvetica, sans-serif)"
+          - "DPI fix: OfficeDocumentSettings XML in head for Outlook"
+      accessibility:
+        weight: 10
+        checks:
+          - "All images have meaningful alt text"
+          - "Color is not the only way to convey information"
+          - "Link text is descriptive (not 'click here')"
+          - "role='presentation' on layout tables"
+          - "lang attribute on <html> element"
+      dark_mode:
+        weight: 10
+        checks:
+          - "meta name='color-scheme' content='light dark' present"
+          - "@media prefers-color-scheme dark styles defined"
+          - "Logo has transparent or dark-mode-compatible background"
+          - "White backgrounds have dark mode override"
+          - "Text colors have dark mode overrides"
+
+  - step: 3
+    name: "Generate the Review"
+    output_format: |
+      EMAIL DESIGN REVIEW
+      ═══════════════════
+
+      OVERALL SCORE: [N/100]
+
+      | Dimension | Score | Weight | Issues |
+      |-----------|-------|--------|--------|
+      | Layout | [N/20] | 20% | [count] |
+      | Visual Hierarchy | [N/20] | 20% | [count] |
+      | Component Fidelity | [N/20] | 20% | [count] |
+      | Render Readiness | [N/20] | 20% | [count] |
+      | Accessibility | [N/10] | 10% | [count] |
+      | Dark Mode | [N/10] | 10% | [count] |
+
+      ISSUES (ranked by severity):
+
+      CRITICAL (will break rendering):
+      - [Issue]: [what's wrong] → [exact fix with code]
+
+      WARNING (will degrade experience):
+      - [Issue]: [what's wrong] → [fix]
+
+      SUGGESTION (nice to have):
+      - [Issue]: [what's wrong] → [fix]
+
+      RENDER PREDICTION:
+      - Gmail: [will render correctly / issues expected]
+      - Outlook Desktop: [will render correctly / issues expected]
+      - Apple Mail: [will render correctly / issues expected]
+      - Mobile (iOS/Android): [will render correctly / issues expected]
+
+rules:
+  - "Score every dimension — never skip a check"
+  - "Critical issues are blockers — things that will visibly break in major clients"
+  - "Provide exact code fixes, not vague recommendations"
+  - "Render prediction must account for the specific issues found"
+  - "If the email is image-only, this is always a critical issue (fails with images off)"

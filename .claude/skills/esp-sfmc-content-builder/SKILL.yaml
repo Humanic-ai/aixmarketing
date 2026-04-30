@@ -1,0 +1,91 @@
+name: esp-sfmc-content-builder
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Manages SFMC Content Builder: extracts raw AMPscript from template-based
+    emails, creates and organizes content blocks, converts between template
+    and paste-HTML formats, and maintains a content block library.
+  trigger_phrases:
+    - "Content Builder"
+    - "content block"
+    - "extract AMPscript from template"
+    - "create a content block"
+    - "organize content blocks"
+    - "template to HTML"
+    - "SFMC content management"
+  when_to_use: >
+    Use this skill when the user works with SFMC Content Builder — creating
+    content blocks, extracting code from template-based emails, converting
+    formats, or organizing their content library.
+
+instructions:
+  - step: 1
+    name: "Identify the Task"
+    content: |
+      Classify the request:
+      - Extract: pull AMPscript/HTML from a template-based email into raw code
+      - Create: build a new content block (HTML, text, or dynamic)
+      - Convert: template-based → paste-HTML or vice versa
+      - Organize: naming conventions, folder structure, tagging
+
+  - step: 2
+    name: "Execute the Task"
+    tasks:
+      extract:
+        content: |
+          When extracting from a template-based email:
+          1. Identify all content areas and their slot names
+          2. Pull the AMPscript from each content area
+          3. Reconstruct the full HTML with all AMPscript inline
+          4. Note any template-level settings (subject line, preheader, from name)
+        output_format: |
+          EXTRACTED EMAIL
+          ═══════════════
+          Subject: [subject line with AMPscript]
+          Preheader: [preheader with AMPscript]
+
+          Content areas extracted:
+          - [slot_name]: [description of content]
+
+          Full HTML:
+          ```html
+          [Complete reconstructed HTML with all AMPscript]
+          ```
+
+      create:
+        content: |
+          When creating a content block:
+          1. Determine type: HTML block / text block / dynamic content / code snippet
+          2. Write the content with proper AMPscript if needed
+          3. Recommend a naming convention and folder location
+        output_format: |
+          CONTENT BLOCK
+          ═════════════
+          Name: [recommended name following convention]
+          Type: [HTML / Text / Dynamic / Code Snippet]
+          Folder: [recommended folder path]
+          Key: [ContentBlockByKey reference key]
+
+          ```html
+          [Content block HTML/AMPscript]
+          ```
+
+          USAGE:
+          Reference in emails with:
+          %%=ContentBlockByKey("[key]")=%%
+
+      organize:
+        content: |
+          Content block library organization:
+          - Naming: [brand]-[type]-[component]-[version]
+          - Folders: /Shared/[Brand]/[Channel]/[Component Type]
+          - Keys: lowercase-hyphenated matching the name
+          - Versioning: append -v2, -v3 for iterations
+
+rules:
+  - "Always use ContentBlockByKey over ContentBlockByName — keys survive renames"
+  - "Include the content block key in every creation for easy reference"
+  - "When extracting, preserve ALL AMPscript — don't simplify or remove error handling"
+  - "Recommend folder organization that scales — flat structures break at 50+ blocks"

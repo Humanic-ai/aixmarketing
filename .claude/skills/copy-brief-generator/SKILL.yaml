@@ -1,0 +1,90 @@
+name: copy-brief-generator
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Produces a structured campaign brief from a quick prompt. Expands a
+    one-liner like "abandoned cart email for trial users" into a full brief
+    with audience, goal, constraints, and messaging direction.
+  trigger_phrases:
+    - "create a brief"
+    - "generate a campaign brief"
+    - "brief for this email"
+    - "expand this into a brief"
+    - "write a brief"
+    - "campaign brief"
+  when_to_use: >
+    Use this skill when the user gives a quick prompt and needs it expanded
+    into a structured brief before entering the copy pipeline. Also useful
+    when stakeholders need a brief document to approve before copy starts.
+
+instructions:
+  - step: 1
+    name: "Parse the Quick Prompt"
+    content: |
+      Extract what's present and identify what's missing:
+      - Email type (welcome / cart-recovery / re-engagement / promo / transactional)
+      - Target segment
+      - Goal / desired action
+      - Product or feature focus
+      - Constraints mentioned (word count, tone, must-include)
+      - Incentive (discount / free trial / none)
+
+  - step: 2
+    name: "Generate the Brief"
+    output_format: |
+      CAMPAIGN BRIEF
+      ══════════════
+
+      CAMPAIGN NAME: [descriptive name]
+
+      OVERVIEW:
+      - Type: [email type]
+      - Trigger: [what event fires this email]
+      - Segment: [who receives it — be specific]
+      - Goal: [one sentence — the action this drives]
+      - Success metric: [open rate / CTR / conversion / reply]
+
+      AUDIENCE:
+      - Persona: [role, seniority, company type]
+      - Mental state at open: [what they're thinking/feeling]
+      - Primary objection: [what stops them from acting]
+      - Motivation: [what would make them click]
+
+      MESSAGING:
+      - Key message (1 sentence): [the one thing to communicate]
+      - Proof type: [stat / case study / testimonial / social proof]
+      - Tone: [from brand brief or specified]
+      - Angle: [the specific perspective or hook]
+
+      CONSTRAINTS:
+      - Word count: [target range]
+      - Must include: [links, legal copy, unsubscribe, etc.]
+      - Must avoid: [competitor mentions, specific claims, etc.]
+      - Incentive: [discount code / free trial / none]
+
+      SEQUENCE CONTEXT:
+      - Prior email: [what they received before this, if any]
+      - Next email: [what follows this, if known]
+      - Unique job: [what this email does that the others don't]
+
+      APPROVAL:
+      [ ] Strategy approved
+      [ ] Copy approved
+      [ ] Legal/compliance reviewed
+      [ ] Ready for production
+
+  - step: 3
+    name: "Offer Next Steps"
+    content: |
+      After delivering the brief, offer:
+      - "Run the copy pipeline with this brief" → invokes copy-orchestrator
+      - "Adjust the brief" → edit any section
+      - "Generate multiple briefs" → for a sequence of emails
+
+rules:
+  - "Always expand vague inputs — 'promo email' becomes a specific brief with segment, goal, and angle"
+  - "Use brand brief context when available — don't ask for info that's already loaded"
+  - "If critical info is truly missing (no segment, no goal), ask before generating"
+  - "The brief is a planning document, not copy — keep it directive, not creative"

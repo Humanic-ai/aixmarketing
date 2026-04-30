@@ -1,0 +1,85 @@
+name: esp-sfmc-orchestrator
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Router for all Salesforce Marketing Cloud sub-skills. Detects user
+    intent and dispatches to the correct SFMC skill: AMPscript, Content
+    Builder, Data Extensions, SQL, Automation Studio, Journey Builder,
+    or the knowledge base.
+  trigger_phrases:
+    - "SFMC"
+    - "Salesforce Marketing Cloud"
+    - "Marketing Cloud"
+    - "help with SFMC"
+    - "I need to do something in Marketing Cloud"
+  when_to_use: >
+    Use this skill when the user mentions SFMC / Salesforce Marketing Cloud
+    and the intent is ambiguous. It classifies the request and routes to
+    the correct sub-skill. If the intent is clear (e.g., "write AMPscript"),
+    the sub-skill can be invoked directly.
+
+routing_table:
+  - intent: "Write or explain AMPscript code"
+    route_to: "esp-ampscript-expert"
+    signals: ["AMPscript", "%%", "SET @", "Lookup(", "IF THEN", "ContentBlockByKey"]
+
+  - intent: "Manage Content Builder blocks or templates"
+    route_to: "esp-sfmc-content-builder"
+    signals: ["content block", "template", "Content Builder", "HTML paste", "extract AMPscript"]
+
+  - intent: "Query or manage Data Extensions"
+    route_to: "esp-sfmc-data-fetcher"
+    signals: ["data extension", "DE", "subscriber data", "query DE", "export data"]
+
+  - intent: "Write SQL for Query Studio"
+    route_to: "esp-sfmc-sql-generator"
+    signals: ["SQL", "Query Studio", "query activity", "SELECT", "JOIN", "data view"]
+
+  - intent: "Build or manage automations"
+    route_to: "esp-sfmc-automation"
+    signals: ["automation", "Automation Studio", "schedule", "triggered send", "import activity"]
+
+  - intent: "Build or manage journeys"
+    route_to: "esp-sfmc-journey-manager"
+    signals: ["journey", "Journey Builder", "decision split", "engagement split", "entry source"]
+
+  - intent: "Troubleshoot or learn SFMC concepts"
+    route_to: "esp-sfmc-knowledge"
+    signals: ["how does", "what is", "explain", "troubleshoot", "error", "best practice"]
+
+instructions:
+  - step: 1
+    name: "Classify Intent"
+    content: |
+      Analyze the user's request against the routing table. Match on:
+      1. Explicit signal words (highest confidence)
+      2. Implied intent from context
+      3. If ambiguous, ask one clarifying question
+
+  - step: 2
+    name: "Route to Sub-Skill"
+    content: |
+      Invoke the matched sub-skill with the full user context. If the task
+      spans multiple sub-skills (e.g., "write SQL to populate a DE then
+      use it in a journey"), chain them in logical order.
+
+  - step: 3
+    name: "Multi-Skill Chains"
+    common_chains:
+      - name: "Data → Email"
+        flow: "sfmc-sql-generator → sfmc-data-fetcher → ampscript-expert"
+        when: "User needs data pulled, transformed, and used in email personalization"
+      - name: "Content → Journey"
+        flow: "sfmc-content-builder → sfmc-journey-manager"
+        when: "User builds email content then deploys it in a journey"
+      - name: "Query → Automation"
+        flow: "sfmc-sql-generator → sfmc-automation"
+        when: "User needs a scheduled query activity in an automation"
+
+rules:
+  - "Route, don't rewrite — the orchestrator classifies intent, sub-skills do the work"
+  - "If the task touches multiple SFMC areas, chain sub-skills in dependency order"
+  - "Always confirm the Business Unit context if the user hasn't specified"
+  - "For ambiguous requests, ask one question — not three"

@@ -1,0 +1,87 @@
+name: copy-advertiser-lens
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Flags internal jargon, assumed knowledge, and insider language that
+    wouldn't land with external audiences. Rewrites flagged sections in
+    plain, prospect-friendly language.
+  trigger_phrases:
+    - "advertiser lens"
+    - "check for jargon"
+    - "make this external-ready"
+    - "would a prospect understand this"
+    - "remove internal language"
+    - "externalize this copy"
+  when_to_use: >
+    Use this skill when email copy targets prospects, paid audiences, or
+    anyone who isn't already a customer or internal team member. It catches
+    language that assumes familiarity with the product, industry shorthand,
+    or internal naming conventions. Runs as optional Stage 5 in the
+    copy-orchestrator pipeline.
+
+chain_position:
+  pipeline: "copy-orchestrator"
+  stage: 5
+  optional: true
+  receives_from: "copy-product-expert"
+  outputs_to: "copy-humanizer (optional) or final output"
+
+instructions:
+  - step: 1
+    name: "Jargon Scan"
+    categories:
+      internal_acronyms:
+        description: "Acronyms not spelled out or not widely known outside the company"
+        action: "Spell out on first use, or replace with plain language"
+      feature_assumptions:
+        description: "Feature names used as if the reader already knows them"
+        action: "Add a 3–5 word explanation on first mention"
+      industry_shorthand:
+        description: "Terms that only practitioners in this space use"
+        action: "Replace with language a smart generalist would understand"
+      insider_references:
+        description: "References to prior emails, internal events, or assumed shared history"
+        action: "Add enough context for a cold reader or remove"
+      competitive_assumptions:
+        description: "Comparisons that assume the reader knows the competitive landscape"
+        action: "Make self-contained — the reader may not know the alternative"
+
+  - step: 2
+    name: "Prospect Comprehension Test"
+    content: |
+      Read the email as a prospect who:
+      - Has never used this product
+      - Has never received an email from this brand
+      - Has 4 seconds to decide if this is worth reading
+      - Knows nothing about the competitive landscape
+
+      For each section, answer: "Would this prospect understand AND care?"
+      Flag anything that fails either test.
+
+  - step: 3
+    name: "Deliver Externalized Copy"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 5 — ADVERTISER LENS
+      ══════════════════════════════════════════
+
+      FLAGS:
+      | Line | Issue | Category | Fix |
+      |------|-------|----------|-----|
+      | "[text]" | [what's wrong] | [jargon/assumption/insider] | "[rewrite]" |
+
+      EXTERNALIZED EMAIL:
+      [Complete email with all flags resolved]
+
+      COMPREHENSION VERDICT:
+      - Would a cold prospect understand this? [YES / YES WITH FIXES ABOVE / NO]
+      - Reading time: [estimated seconds]
+      - Biggest remaining risk: [one thing that might still confuse an outsider]
+
+rules:
+  - "This skill is about the reader, not the writing quality — even well-written copy can be full of jargon"
+  - "When in doubt, flag it — false positives are cheaper than confused prospects"
+  - "Rewrites must preserve the strategic intent — just change the vocabulary, not the message"
+  - "If the email is for existing customers only, this skill can be skipped"

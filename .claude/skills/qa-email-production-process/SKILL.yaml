@@ -1,0 +1,133 @@
+name: qa-email-production-process
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Launch checklist for email campaigns. Covers pre-send verification
+    across copy, design, data, deliverability, legal compliance, and
+    ESP configuration. Prevents send-day disasters.
+  trigger_phrases:
+    - "email launch checklist"
+    - "pre-send checklist"
+    - "ready to send check"
+    - "email production checklist"
+    - "can I send this email"
+    - "final QA before send"
+    - "launch readiness"
+    - "go/no-go check"
+  when_to_use: >
+    Use this skill before any email goes live — whether it's a one-time
+    campaign, a new journey email, or an update to an existing send. It
+    runs through every production checkpoint to catch issues before they
+    reach inboxes.
+
+instructions:
+  - step: 1
+    name: "Collect Send Context"
+    content: |
+      Confirm:
+      - ESP: SFMC / Customer.io / Klaviyo / Humanic / other
+      - Send type: campaign (broadcast) / journey (triggered) / transactional
+      - Audience size: expected send volume
+      - Send time: scheduled date/time + timezone
+      - Is this a first send or an update to existing?
+
+  - step: 2
+    name: "Run the Checklist"
+    checklist:
+      copy:
+        - "[ ] Subject line finalized — no placeholder text"
+        - "[ ] Preheader text set — not pulling from body copy"
+        - "[ ] From name and reply-to address correct"
+        - "[ ] Body copy reviewed and approved by stakeholders"
+        - "[ ] No lorem ipsum or placeholder content"
+        - "[ ] Personalization tokens have fallback values"
+        - "[ ] Legal disclaimers present (if required)"
+        - "[ ] Proofread — no typos, grammar errors, or broken sentences"
+
+      design:
+        - "[ ] Email renders correctly in top 5 clients (Gmail, Outlook, Apple Mail, Yahoo, mobile)"
+        - "[ ] Images load — all URLs are live (not local paths)"
+        - "[ ] Alt text on all images"
+        - "[ ] CTA button is clickable and goes to correct URL"
+        - "[ ] Mobile responsive — tested on phone viewport"
+        - "[ ] Dark mode tested"
+        - "[ ] Total email size < 102KB (Gmail clipping threshold)"
+
+      links:
+        - "[ ] All links tested and go to correct destinations"
+        - "[ ] UTM parameters appended to all trackable links"
+        - "[ ] Unsubscribe link works and goes to correct preference center"
+        - "[ ] No broken links or placeholder URLs (#, example.com)"
+        - "[ ] Link tracking enabled in ESP"
+
+      data:
+        - "[ ] Audience segment is correct — spot-check 5 random recipients"
+        - "[ ] Suppression lists applied (unsubscribes, bounces, complaints)"
+        - "[ ] Personalization fields populated for all recipients"
+        - "[ ] Test send received and reviewed by at least 2 people"
+        - "[ ] Merge tags render correctly (not showing raw {{name}})"
+
+      deliverability:
+        - "[ ] Sending domain authenticated (SPF, DKIM, DMARC)"
+        - "[ ] Sending IP warmed (if new IP or high volume)"
+        - "[ ] Spam score checked (via Mail Tester or similar)"
+        - "[ ] Send volume within daily limits for IP reputation"
+        - "[ ] Plain text version included alongside HTML"
+
+      esp_config:
+        - "[ ] Correct send classification / sender profile (SFMC)"
+        - "[ ] Send throttling configured (if high volume)"
+        - "[ ] Tracking enabled (opens, clicks)"
+        - "[ ] Journey/automation status is correct (Draft → Active)"
+        - "[ ] A/B test configured correctly (if applicable)"
+
+      legal:
+        - "[ ] CAN-SPAM: physical address in footer"
+        - "[ ] CAN-SPAM: unsubscribe link functional"
+        - "[ ] GDPR: consent basis documented (if EU audience)"
+        - "[ ] CCPA: opt-out mechanism available (if CA audience)"
+        - "[ ] Industry-specific disclaimers included (finance, healthcare)"
+
+  - step: 3
+    name: "Generate the Go/No-Go Report"
+    output_format: |
+      EMAIL LAUNCH CHECKLIST
+      ══════════════════════
+
+      CAMPAIGN: [name]
+      SEND DATE: [date + time + timezone]
+      AUDIENCE: [segment name — N recipients]
+      ESP: [platform]
+
+      STATUS: [GO / NO-GO / GO WITH CAVEATS]
+
+      | Category | Checks | Passed | Failed | Skipped |
+      |----------|--------|--------|--------|---------|
+      | Copy | [N] | [N] | [N] | [N] |
+      | Design | [N] | [N] | [N] | [N] |
+      | Links | [N] | [N] | [N] | [N] |
+      | Data | [N] | [N] | [N] | [N] |
+      | Deliverability | [N] | [N] | [N] | [N] |
+      | ESP Config | [N] | [N] | [N] | [N] |
+      | Legal | [N] | [N] | [N] | [N] |
+
+      BLOCKERS (must fix before send):
+      - [Issue]: [what's wrong + how to fix]
+
+      WARNINGS (acceptable risk, but note):
+      - [Issue]: [risk + mitigation]
+
+      SIGN-OFF:
+      [ ] Copy approved by: _______________
+      [ ] Design approved by: _______________
+      [ ] Data/QA approved by: _______________
+      [ ] Final go from: _______________
+
+rules:
+  - "Any failed check in copy, links, or data is a blocker — NO-GO until fixed"
+  - "Failed deliverability checks are blockers for large sends (>10K), warnings for small sends"
+  - "Legal checks are always blockers — non-compliance has regulatory risk"
+  - "If the user can't verify a check, mark it as skipped with a risk note"
+  - "Always recommend a test send to at least 2 people before the live send"

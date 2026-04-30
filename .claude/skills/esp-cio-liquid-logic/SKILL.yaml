@@ -1,0 +1,104 @@
+name: esp-cio-liquid-logic
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Writes, explains, and debugs Liquid templates for Customer.io. Handles
+    personalization, conditional logic, loops, filters, date formatting,
+    and event-driven dynamic content.
+  trigger_phrases:
+    - "Customer.io Liquid"
+    - "CIO template"
+    - "Liquid logic for Customer.io"
+    - "personalization in Customer.io"
+    - "write Liquid code"
+    - "Customer.io dynamic content"
+    - "debug Liquid"
+  when_to_use: >
+    Use this skill when the user needs Liquid template code for Customer.io
+    emails, webhooks, or in-app messages. Covers: attribute access, event
+    data, conditional blocks, iteration, filters, date math, and fallbacks.
+
+instructions:
+  - step: 1
+    name: "Understand the Requirement"
+    content: |
+      Clarify:
+      - Content type: email / webhook / in-app / push
+      - Data source: customer attributes / event properties / segment data
+      - Personalization needed: name, product, conditional blocks, loops
+      - Fallback behavior: default text / hide section / show generic
+
+  - step: 2
+    name: "Write the Liquid"
+    output_format: |
+      LIQUID TEMPLATE
+      ═══════════════
+
+      PURPOSE: [what this template does]
+      CONTENT TYPE: [email / webhook / in-app]
+      DATA REQUIRED: [attributes and events used]
+
+      ```liquid
+      {%- comment -%} Variable setup {%- endcomment -%}
+      {%- assign fallback_name = "there" -%}
+
+      {%- comment -%} Personalized greeting {%- endcomment -%}
+      Hi {{ customer.first_name | default: fallback_name }},
+
+      {%- comment -%} Conditional content block {%- endcomment -%}
+      {%- if customer.plan == "pro" -%}
+        [Pro-tier content]
+      {%- elsif customer.plan == "free" -%}
+        [Free-tier content]
+      {%- else -%}
+        [Default content]
+      {%- endif -%}
+
+      {%- comment -%} Loop over event data {%- endcomment -%}
+      {%- for item in event.items -%}
+        - {{ item.name }}: {{ item.price | money }}
+      {%- endfor -%}
+      ```
+
+      EXPLANATION:
+      - What each block does and why
+      - Which attributes/events must exist in CIO
+
+      TESTING:
+      - Use Customer.io's template preview with a test profile
+      - Required attributes: [list]
+      - Edge cases to test: [empty arrays, missing attributes, null values]
+
+  - step: 3
+    name: "Debug Mode"
+    content: |
+      If the user shares broken Liquid:
+      1. Identify: syntax error / logic error / missing data / filter misuse
+      2. Explain the root cause
+      3. Provide corrected code
+      4. Note CIO-specific Liquid quirks vs standard Shopify Liquid
+
+reference:
+  cio_specific:
+    - "customer.attribute_name — access customer profile attributes"
+    - "event.property_name — access trigger event properties"
+    - "customer.unsubscribe_url — built-in unsubscribe link"
+    - "customer.id — unique customer identifier"
+    - "trigger.name — name of the triggering event"
+  useful_filters:
+    - "default: 'fallback' — provide fallback for nil values"
+    - "date: '%B %d, %Y' — format dates"
+    - "money — format currency"
+    - "upcase / downcase / capitalize — case transforms"
+    - "split / join — string array operations"
+    - "size — count array items"
+    - "where: 'key', 'value' — filter arrays"
+
+rules:
+  - "Always use default filter for any attribute that might be nil"
+  - "Use whitespace control ({%- -%}) to prevent blank lines in output"
+  - "Comment every logical block for team maintainability"
+  - "Note CIO-specific Liquid differences from Shopify Liquid"
+  - "Include required attributes list so the user can verify their data model"

@@ -1,0 +1,141 @@
+name: copy-orchestrator
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Master chain controller for email copy generation. Runs the full pipeline:
+    strategist → writer → QA gate → product expert enrichment in one pass,
+    with optional advertiser lens, humanizer, and feedback processing stages.
+  trigger_phrases:
+    - "write email copy"
+    - "generate campaign copy"
+    - "run the copy pipeline"
+    - "full copy generation"
+    - "create email content"
+    - "write and QA an email"
+    - "copy orchestrator"
+    - "run copy chain"
+  when_to_use: >
+    Use this skill when the user wants complete, production-ready email copy.
+    It chains sub-skills in the correct order so every email goes through
+    strategy, writing, quality assurance, and product enrichment before
+    delivery. Individual sub-skills can be invoked standalone, but the
+    orchestrator ensures nothing is skipped.
+
+architecture:
+  pattern: "Sequential chain with optional branches"
+  pipeline:
+    - stage: 1
+      skill: "copy-strategist"
+      name: "Strategy"
+      required: true
+      produces: "audience_model, component_directions, emotional_arc"
+    - stage: 2
+      skill: "copy-writer"
+      name: "Writing"
+      required: true
+      consumes: "stage_1_output"
+      produces: "subject_lines, preheader, body, ctas"
+    - stage: 3
+      skill: "copy-qa-gate"
+      name: "QA Gate"
+      required: true
+      consumes: "stage_2_output"
+      produces: "qa_scorecard, flagged_issues, revised_copy"
+    - stage: 4
+      skill: "copy-product-expert"
+      name: "Product Enrichment"
+      required: true
+      consumes: "stage_3_output"
+      produces: "enriched_copy_with_proof_points"
+    - stage: 5
+      skill: "copy-advertiser-lens"
+      name: "Advertiser Lens"
+      required: false
+      condition: "Run when copy targets external audience or paid channels"
+      consumes: "stage_4_output"
+      produces: "externally_safe_copy"
+    - stage: 6
+      skill: "copy-humanizer"
+      name: "Humanizer"
+      required: false
+      condition: "Run when user requests humanized output or QA gate flags AI tells"
+      consumes: "latest_stage_output"
+      produces: "humanized_final_copy"
+
+instructions:
+  - step: 1
+    name: "Collect Campaign Brief"
+    content: |
+      Before entering the pipeline, collect or confirm:
+      - Brand context (from /brand-brief or session)
+      - Email type: welcome / abandoned-cart / re-engagement / promotional /
+        transactional / newsletter / nurture
+      - Target segment: who is receiving this
+      - Goal: what action this email should drive
+      - Constraints: word count, required links, legal copy, incentive
+      - Channel: lifecycle / broadcast / triggered / paid
+      If the user provides a quick prompt, run the brief-generator sub-skill
+      to expand it into a full brief before entering Stage 1.
+
+  - step: 2
+    name: "Run the Pipeline"
+    content: |
+      Execute stages 1–4 sequentially. Each stage's output becomes the next
+      stage's input. Display each stage's output with a clear header:
+
+      ══════════════════════════════════════════
+      STAGE [N] — [SKILL NAME]
+      ══════════════════════════════════════════
+
+      After Stage 4, evaluate whether Stage 5 (advertiser lens) and Stage 6
+      (humanizer) are needed:
+      - Stage 5 triggers if the email goes to external audiences or paid channels
+      - Stage 6 triggers if the QA gate flagged AI writing patterns, or the
+        user explicitly requests humanization
+
+  - step: 3
+    name: "Deliver Final Output"
+    output_format: |
+      ╔══════════════════════════════════════════════════════╗
+      ║           COPY PIPELINE COMPLETE                     ║
+      ╚══════════════════════════════════════════════════════╝
+
+      FINAL SUBJECT LINES:
+      1. [Primary]
+      2. [A/B variant]
+      3. [Creative variant]
+
+      FINAL PREHEADER: [80–100 chars]
+
+      FINAL EMAIL BODY:
+      [Complete copy — post-QA, post-enrichment, post-humanization]
+
+      PIPELINE SUMMARY:
+      - Strategist: [audience model + direction in 1 line]
+      - Writer: [approach taken in 1 line]
+      - QA Gate: [score + issues fixed]
+      - Product Expert: [enrichments added]
+      - Advertiser Lens: [skipped / flags resolved]
+      - Humanizer: [skipped / patterns fixed]
+
+      NEXT STEPS:
+      1. Run /email-preview for client-safe HTML
+      2. Push to Humanic with recommended cohort
+      3. Run copy-feedback-processor if stakeholder revisions come back
+
+  - step: 4
+    name: "Handle Feedback Loops"
+    content: |
+      If the user provides feedback or stakeholder revisions after the
+      pipeline completes, invoke the feedback-processor sub-skill. It applies
+      revisions and re-runs only the affected pipeline stages (usually
+      writer → QA gate) rather than restarting from scratch.
+
+rules:
+  - "Always run stages 1–4 in order — never skip strategy or QA"
+  - "Show each stage's output so the user sees the chain evolve"
+  - "If brand brief is missing, collect minimum viable context before Stage 1"
+  - "The orchestrator decides whether optional stages run — don't ask the user unless ambiguous"
+  - "Each sub-skill can run standalone if invoked directly — the orchestrator adds sequencing, not dependency"

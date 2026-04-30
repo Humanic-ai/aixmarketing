@@ -1,0 +1,108 @@
+name: copy-strategist
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Builds an audience mental model and per-component direction before any
+    copy is written. Produces the strategic foundation that the writer skill
+    consumes.
+  trigger_phrases:
+    - "build a copy strategy"
+    - "audience mental model"
+    - "email strategy"
+    - "plan the email before writing"
+    - "copy direction"
+    - "strategic brief for email"
+  when_to_use: >
+    Use this skill before writing any email copy. It analyses the target
+    segment, maps their mental state at the moment of open, identifies the
+    single job this email must do, and produces per-component direction
+    (subject line, preheader, hook, body, CTA) so the writer has a clear
+    blueprint. Runs as Stage 1 in the copy-orchestrator pipeline, or
+    standalone when the user wants strategy without generation.
+
+chain_position:
+  pipeline: "copy-orchestrator"
+  stage: 1
+  outputs_to: "copy-writer"
+
+instructions:
+  - step: 1
+    name: "Load Inputs"
+    content: |
+      Collect from session context or ask the user:
+      - Brand brief (company, ICP, voice, differentiators)
+      - Email type (welcome / cart-recovery / re-engagement / promo / transactional / nurture)
+      - Segment definition (who exactly receives this)
+      - Trigger event (what happened right before this email fires)
+      - Business goal (the one metric this email moves)
+      - Past-sends context (any prior emails in this sequence)
+
+  - step: 2
+    name: "Build the Audience Mental Model"
+    output_format: |
+      AUDIENCE MENTAL MODEL
+      ─────────────────────
+      Who they are: [1-line persona — role, seniority, day-to-day]
+      Where they are right now: [emotional + situational state at moment of open]
+      What they just did: [trigger event]
+      What they're worried about: [primary objection or friction]
+      What would make them act: [the unlock — proof, incentive, clarity, urgency]
+      Internal monologue: "[Write one sentence from the reader's perspective — what they're thinking when they see this in their inbox]"
+
+  - step: 3
+    name: "Define the Email's Single Job"
+    output_format: |
+      EMAIL JOB STATEMENT
+      ───────────────────
+      This email exists to: [one sentence — verb + outcome]
+      Success metric: [open rate / click rate / conversion / reply — pick ONE]
+      Emotional shift: from [current state] → to [desired state after reading]
+
+  - step: 4
+    name: "Per-Component Direction"
+    output_format: |
+      COMPONENT DIRECTION
+      ───────────────────
+      SUBJECT LINE direction:
+      - Hook type: [curiosity / benefit / identity / urgency / social proof]
+      - Tone: [from brand voice — which adjective to lean into]
+      - Length target: [short <40 chars / medium 40-60 / long 60-80]
+      - Must include: [keyword, name, number, or nothing]
+
+      PREHEADER direction:
+      - Job: [extend the subject / add context / create contrast]
+      - Relationship to subject: [complement / surprise / specify]
+
+      OPENING HOOK direction:
+      - Mirror the reader's: [situation / feeling / recent action]
+      - First line must earn: [the second line — not sell the product]
+      - Avoid: [specific cliches for this email type]
+
+      BODY direction:
+      - Structure: [problem→solution / story→insight / feature→benefit / proof→ask]
+      - Proof type: [stat / customer quote / case study / social proof / none]
+      - Length: [short <100 words / medium 100-200 / long 200-300]
+
+      CTA direction:
+      - Action: [the one thing they should click]
+      - Button copy approach: [verb-first / benefit / curiosity]
+      - Friction reducer: [what reassurance sits near the CTA]
+
+  - step: 5
+    name: "Competitive & Timing Context"
+    output_format: |
+      CONTEXT NOTES
+      ─────────────
+      What competitors likely send at this trigger: [1-2 sentences]
+      How to differentiate: [the angle competitors miss]
+      Timing consideration: [send time, day-of-week, or delay recommendation]
+      Inbox environment: [what else is likely in their inbox right now]
+
+rules:
+  - "Never write actual copy in this skill — that is the writer's job"
+  - "The audience mental model must include the reader's internal monologue"
+  - "One job per email — if two jobs emerge, recommend splitting into two emails"
+  - "Component directions are prescriptive — give the writer specific constraints, not vague guidance"
+  - "If past-sends context is available, note what was already said so the writer avoids repetition"

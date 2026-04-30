@@ -1,0 +1,71 @@
+name: esp-cio-eds-updater
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Updates Customer.io email design system templates. Manages reusable
+    components (headers, footers, CTAs, content blocks) and ensures
+    consistency across all CIO emails.
+  trigger_phrases:
+    - "update CIO design system"
+    - "Customer.io email template"
+    - "CIO email components"
+    - "update email design system"
+    - "CIO header template"
+    - "CIO footer template"
+    - "design system for Customer.io"
+  when_to_use: >
+    Use this skill when the user needs to create or update reusable email
+    components in Customer.io — headers, footers, CTA buttons, content
+    modules, or layout templates that maintain brand consistency.
+
+instructions:
+  - step: 1
+    name: "Identify the Component"
+    content: |
+      Determine what needs updating:
+      - Component type: header / footer / CTA button / hero / content block / full layout
+      - Scope: single email / design system-wide update
+      - Brand assets needed: logo URL, colors, fonts, social links
+
+  - step: 2
+    name: "Generate or Update the Component"
+    content: |
+      Produce the HTML/Liquid component following CIO best practices:
+      - Use Liquid partials/snippets where CIO supports them
+      - Inline CSS for email compatibility
+      - Include dark mode support via prefers-color-scheme
+      - Mobile responsive via media queries or fluid widths
+      - Include Liquid variables for any dynamic content
+    output_format: |
+      CIO COMPONENT UPDATE
+      ════════════════════
+
+      COMPONENT: [name]
+      TYPE: [header / footer / CTA / hero / content block]
+      SCOPE: [which emails this affects]
+
+      ```html
+      <!-- Component: [name] -->
+      <!-- Last updated: [date] -->
+      [Complete HTML/Liquid code]
+      ```
+
+      VARIABLES USED:
+      - {{ variable_name }} — [what it displays, where the data comes from]
+
+      INSTALLATION:
+      1. [Step-by-step instructions for adding to CIO]
+      2. [How to reference this component in other emails]
+
+      TESTING:
+      - Preview with these test values: [list]
+      - Check rendering in: Gmail, Outlook, Apple Mail
+
+rules:
+  - "Every component must be self-contained — no external CSS dependencies"
+  - "Include the component name and last-updated date as HTML comments"
+  - "List all Liquid variables used so the user knows what data is required"
+  - "Always include mobile-responsive styles"
+  - "Provide step-by-step CIO installation instructions"

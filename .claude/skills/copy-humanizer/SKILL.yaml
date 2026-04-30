@@ -1,0 +1,250 @@
+name: copy-humanizer
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Strips AI writing tells from email copy. Detects and fixes 39 patterns
+    across 6 categories: structural, lexical, rhetorical, tonal, formatting,
+    and mechanical. Makes AI-generated copy read like it was written by
+    a human marketer.
+  trigger_phrases:
+    - "humanize this email"
+    - "make it sound human"
+    - "remove AI writing patterns"
+    - "strip the AI tells"
+    - "make this less robotic"
+    - "humanize the copy"
+    - "de-AI this"
+  when_to_use: >
+    Use this skill when email copy reads too polished, too structured, or
+    too "AI" — even after QA. It detects specific patterns that signal
+    machine-written text and rewrites them to sound like a real marketer
+    wrote the email. Runs as optional Stage 6 in the copy-orchestrator
+    pipeline, or standalone on any text.
+
+chain_position:
+  pipeline: "copy-orchestrator"
+  stage: 6
+  optional: true
+  receives_from: "copy-advertiser-lens or copy-product-expert"
+  outputs_to: "final output"
+
+detection_patterns:
+  structural:
+    count: 8
+    patterns:
+      - id: S1
+        name: "Perfect three-part structure"
+        signal: "Every email has exactly setup → insight → CTA with identical rhythm"
+        fix: "Break the pattern — start with the CTA, bury the setup, or skip the insight"
+      - id: S2
+        name: "Uniform paragraph length"
+        signal: "All paragraphs are 2-3 sentences, same cadence"
+        fix: "Mix: one-word paragraph, then a 4-sentence block, then a question"
+      - id: S3
+        name: "Predictable transitions"
+        signal: "Here's the thing / But here's what most people miss / The truth is"
+        fix: "Delete the transition — just make the next point"
+      - id: S4
+        name: "Bullet-point-itis"
+        signal: "Every list is 3-5 parallel bullet points"
+        fix: "Inline one or two points into prose, vary list length"
+      - id: S5
+        name: "Mirror-image openings and closings"
+        signal: "Closing restates the opening almost verbatim"
+        fix: "End somewhere new — the reader should be in a different place"
+      - id: S6
+        name: "Section symmetry"
+        signal: "Every section is the same length and follows the same internal pattern"
+        fix: "Make one section twice as long and another half as long"
+      - id: S7
+        name: "Thesis-first paragraphs"
+        signal: "Every paragraph opens with a topic sentence"
+        fix: "Lead with evidence or anecdote sometimes, let the thesis emerge"
+      - id: S8
+        name: "Over-signposting"
+        signal: "First... Second... Third... / Let's start with... Next..."
+        fix: "Remove numbering — trust the reader to follow"
+
+  lexical:
+    count: 7
+    patterns:
+      - id: L1
+        name: "Elevated vocabulary"
+        signal: "Words like 'leverage', 'facilitate', 'utilize', 'endeavor', 'paramount'"
+        fix: "Use the simpler word: use, help, try, important"
+      - id: L2
+        name: "Adverb stacking"
+        signal: "'Incredibly powerful', 'truly remarkable', 'absolutely essential'"
+        fix: "Delete the adverb — the adjective is enough"
+      - id: L3
+        name: "Nominalization"
+        signal: "'The implementation of' instead of 'implementing', 'the optimization of'"
+        fix: "Use the verb form"
+      - id: L4
+        name: "Hedge clusters"
+        signal: "'It could potentially perhaps' — multiple uncertainty markers"
+        fix: "Pick one or commit to the claim"
+      - id: L5
+        name: "Emotion labeling"
+        signal: "'This is exciting' instead of showing why it's exciting"
+        fix: "Show, don't label — give the specific detail"
+      - id: L6
+        name: "Genericisms"
+        signal: "'Various', 'numerous', 'a wide range of', 'comprehensive'"
+        fix: "Be specific: name the things, count them, or cut the word"
+      - id: L7
+        name: "Empty intensifiers"
+        signal: "'Very', 'really', 'extremely', 'highly'"
+        fix: "Delete or replace with a specific comparison"
+
+  rhetorical:
+    count: 6
+    patterns:
+      - id: R1
+        name: "Rhetorical question + immediate answer"
+        signal: "Want to know the secret? Here it is."
+        fix: "Delete the question, start with the answer"
+      - id: R2
+        name: "False humility"
+        signal: "'We're proud to' / 'We're honored to' / 'We're excited to'"
+        fix: "Skip the emotion — just state the news"
+      - id: R3
+        name: "Tricolon overuse"
+        signal: "Three-part lists in every paragraph (fast, easy, powerful)"
+        fix: "Use two things sometimes, or five, or one"
+      - id: R4
+        name: "The summary sentence"
+        signal: "'In short...' / 'Simply put...' / 'The bottom line...'"
+        fix: "If you need to summarize, the original wasn't clear enough"
+      - id: R5
+        name: "Manufactured urgency"
+        signal: "'Don't wait' / 'Act now' / 'Limited time' without real scarcity"
+        fix: "Only use urgency if there's a real deadline or quantity limit"
+      - id: R6
+        name: "Value assertion without evidence"
+        signal: "'This will transform your workflow' without saying how"
+        fix: "Add the specific mechanism or cut the claim"
+
+  tonal:
+    count: 6
+    patterns:
+      - id: T1
+        name: "Uniform enthusiasm"
+        signal: "Every sentence is positive — no contrast, no admission, no edge"
+        fix: "Add one honest admission or counterpoint to build trust"
+      - id: T2
+        name: "Corporate warmth"
+        signal: "Friendly but anonymous — could be from any brand"
+        fix: "Add a detail only this person/brand would know"
+      - id: T3
+        name: "Perfect empathy"
+        signal: "'We understand your challenges' — too smooth, not specific"
+        fix: "Name the specific frustration, not the category"
+      - id: T4
+        name: "Relentless positivity"
+        signal: "No acknowledgment of tradeoffs, costs, or effort required"
+        fix: "Mention what it takes — effort builds credibility"
+      - id: T5
+        name: "Conversational performance"
+        signal: "Uses 'you know' / 'right?' / 'honestly' to simulate casualness"
+        fix: "Actually be casual — shorter sentences, incomplete thoughts"
+      - id: T6
+        name: "Emotional escalation"
+        signal: "Each paragraph is more enthusiastic than the last"
+        fix: "Vary the intensity — low, high, medium, end on confident-quiet"
+
+  formatting:
+    count: 6
+    patterns:
+      - id: F1
+        name: "Emoji as punctuation"
+        signal: "Every section header or bullet point starts with an emoji"
+        fix: "Remove all but 0-1 emojis, and only if the brand uses them"
+      - id: F2
+        name: "Bold-heavy"
+        signal: "Key phrase in bold in every paragraph"
+        fix: "Bold only the one thing that matters most, or nothing"
+      - id: F3
+        name: "Identical list formatting"
+        signal: "Every list uses the same format (all bullets, all numbered)"
+        fix: "Inline some lists, vary bullet vs. numbered"
+      - id: F4
+        name: "Header-per-section"
+        signal: "Short emails broken into 4+ labeled sections"
+        fix: "For emails, headers are rarely needed — let the copy flow"
+      - id: F5
+        name: "Dash overuse"
+        signal: "Em dashes in every paragraph — used for parenthetical asides — like this"
+        fix: "Use one per email max, or switch to commas/parentheses"
+      - id: F6
+        name: "Ellipsis trail"
+        signal: "Building suspense with '...' at the end of lines"
+        fix: "Use a period. Trust the content to create anticipation"
+
+  mechanical:
+    count: 6
+    patterns:
+      - id: M1
+        name: "Perfect grammar throughout"
+        signal: "Zero errors, zero fragments, zero rule-breaking"
+        fix: "Real writers use fragments. Intentionally. For rhythm"
+      - id: M2
+        name: "Consistent sentence starters"
+        signal: "We... We... We... or You... You... You..."
+        fix: "Vary openers: start with a verb, a number, a question, a fragment"
+      - id: M3
+        name: "Zero contractions"
+        signal: "'We are' / 'do not' / 'it is' instead of we're / don't / it's"
+        fix: "Use contractions — they're how people write emails"
+      - id: M4
+        name: "Parallel construction everywhere"
+        signal: "Every list item follows the exact same grammatical pattern"
+        fix: "Break parallelism occasionally — it sounds more natural"
+      - id: M5
+        name: "Over-punctuation"
+        signal: "Semicolons, colons, and em dashes in casual copy"
+        fix: "Period. New sentence. Keep it simple"
+      - id: M6
+        name: "Consistent paragraph endings"
+        signal: "Every paragraph ends with a conclusion or transition"
+        fix: "Some paragraphs should just stop"
+
+instructions:
+  - step: 1
+    name: "Scan the Copy"
+    content: |
+      Run all 39 patterns against the input text. For each match, note:
+      - Pattern ID and name
+      - The exact text that triggered it
+      - The specific fix applied
+
+  - step: 2
+    name: "Deliver Humanized Output"
+    output_format: |
+      ══════════════════════════════════════════
+      STAGE 6 — HUMANIZER
+      ══════════════════════════════════════════
+
+      PATTERNS DETECTED: [N] of 39
+
+      | ID | Pattern | Flagged Text | Fix Applied |
+      |----|---------|-------------|-------------|
+      | [ID] | [name] | "[text]" | "[rewrite]" |
+
+      HUMANIZED EMAIL:
+      [Complete rewritten email with all patterns resolved]
+
+      HUMANIZER NOTES:
+      - Patterns fixed: [N]
+      - Categories affected: [which of the 6 categories had hits]
+      - Biggest tells: [top 3 patterns that most signaled AI authorship]
+      - Human confidence: [low / medium / high — how human does it read now?]
+
+rules:
+  - "Fix patterns while preserving the strategic intent and brand voice"
+  - "Not every pattern is always bad — use judgment on which fixes improve the email"
+  - "The goal is 'sounds like a real marketer wrote this', not 'sounds like it was written badly'"
+  - "Some patterns (M1: perfect grammar) should only be 'fixed' in casual-tone brands"
+  - "Report all 39 pattern scans — even patterns not found, to show completeness"

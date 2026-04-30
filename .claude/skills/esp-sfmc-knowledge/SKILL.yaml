@@ -1,0 +1,100 @@
+name: esp-sfmc-knowledge
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    SFMC concept reference and troubleshooting guide. Explains platform
+    concepts, resolves common errors, and provides best-practice
+    recommendations grounded in official documentation.
+  trigger_phrases:
+    - "explain SFMC concept"
+    - "what is a data view"
+    - "SFMC best practices"
+    - "SFMC error"
+    - "how does Journey Builder work"
+    - "SFMC troubleshooting"
+    - "Marketing Cloud help"
+    - "SFMC permissions"
+  when_to_use: >
+    Use this skill when the user has questions about how SFMC works, needs
+    to troubleshoot an error, or wants best-practice guidance. This is the
+    reference/knowledge skill — it explains, it doesn't build.
+
+knowledge_domains:
+  - name: "Architecture"
+    topics:
+      - "Business Units and Enterprise 2.0 account structure"
+      - "Shared vs local Data Extensions"
+      - "Contact model vs Subscriber model"
+      - "All Subscribers list and its role"
+      - "Sender Profiles, Delivery Profiles, Send Classifications"
+
+  - name: "Data Model"
+    topics:
+      - "Data Extensions vs Lists"
+      - "Sendable vs non-sendable DEs"
+      - "Data Views (_Open, _Click, _Sent, _Bounce, etc.)"
+      - "Data retention and purge policies"
+      - "Contact Key vs Subscriber Key vs Email Address"
+
+  - name: "Email Studio"
+    topics:
+      - "Template-based vs paste HTML emails"
+      - "Content Builder blocks and folders"
+      - "Dynamic content and AMPscript"
+      - "Preview & Test with test DEs"
+      - "Send logging and tracking"
+
+  - name: "Journey Builder"
+    topics:
+      - "Entry sources: DE entry, API events, audiences"
+      - "Decision splits, engagement splits, random splits"
+      - "Wait steps and timezone handling"
+      - "Goals and exit criteria"
+      - "Journey versioning and testing"
+
+  - name: "Automation Studio"
+    topics:
+      - "Automation types: scheduled, triggered, file drop"
+      - "Query activities and SQL limitations"
+      - "Import/export activities"
+      - "Script activities (SSJS)"
+      - "Error handling and notifications"
+
+  - name: "Deliverability"
+    topics:
+      - "IP warming and reputation"
+      - "Authentication: SPF, DKIM, DMARC"
+      - "Bounce handling and suppression"
+      - "Subscriber engagement scoring"
+      - "Send throttling and send windows"
+
+instructions:
+  - step: 1
+    name: "Answer the Question"
+    content: |
+      Provide a clear, accurate explanation of the SFMC concept or
+      resolution for the error. Structure as:
+      1. Direct answer (1-2 sentences)
+      2. How it works (context and mechanics)
+      3. Common pitfalls (what goes wrong)
+      4. Best practice recommendation
+      5. Related concepts to explore
+
+  - step: 2
+    name: "Error Resolution"
+    content: |
+      For troubleshooting requests:
+      1. Identify the error type (configuration / data / permission / timing)
+      2. Most likely cause (from experience patterns)
+      3. Step-by-step resolution
+      4. How to prevent recurrence
+      5. Where to check in the SFMC UI
+
+rules:
+  - "Be precise about SFMC terminology — don't use generic terms when SFMC has specific names"
+  - "Distinguish between Enterprise 2.0 and standalone account behavior"
+  - "Note when behavior differs between Classic and Lightning UI"
+  - "Reference official SFMC documentation concepts, not third-party interpretations"
+  - "If a concept has changed in recent SFMC releases, note the version difference"

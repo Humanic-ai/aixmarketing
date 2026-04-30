@@ -1,0 +1,122 @@
+name: perf-sfmc-email-engagement
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Pulls triggered-send and journey email engagement metrics from SFMC
+    using Data Views and SQL. No external pipeline needed — queries
+    _Sent, _Open, _Click, _Bounce, and _Job directly.
+  trigger_phrases:
+    - "SFMC email engagement"
+    - "triggered send metrics"
+    - "SFMC open rates"
+    - "journey email performance"
+    - "SFMC engagement data"
+    - "pull metrics from SFMC"
+    - "email stats from Marketing Cloud"
+  when_to_use: >
+    Use this skill when the user needs engagement metrics directly from
+    SFMC Data Views without setting up an external data pipeline. It
+    generates the SQL queries needed to pull send, open, click, bounce,
+    and unsubscribe data for any email or journey.
+
+instructions:
+  - step: 1
+    name: "Identify What to Measure"
+    content: |
+      Clarify:
+      - Scope: single email / journey / all sends in date range
+      - Identifier: JobID, TriggeredSendDefinitionObjectID, or email name
+      - Date range: last 7d / 30d / 90d / custom
+      - Metrics needed: opens / clicks / bounces / unsubs / all
+      - Granularity: aggregate / daily / hourly
+
+  - step: 2
+    name: "Generate Engagement Queries"
+    queries:
+      aggregate_performance:
+        description: "Overall send performance for a date range"
+        sql: |
+          /* Aggregate email performance */
+          SELECT
+              j.EmailName,
+              j.JobID,
+              j.DeliveredTime,
+              COUNT(DISTINCT s.SubscriberKey) AS Sent,
+              COUNT(DISTINCT o.SubscriberKey) AS UniqueOpens,
+              COUNT(DISTINCT c.SubscriberKey) AS UniqueClicks,
+              COUNT(DISTINCT b.SubscriberKey) AS Bounced,
+              COUNT(DISTINCT u.SubscriberKey) AS Unsubscribed,
+              CAST(COUNT(DISTINCT o.SubscriberKey) AS FLOAT) /
+                NULLIF(COUNT(DISTINCT s.SubscriberKey), 0) * 100 AS OpenRate,
+              CAST(COUNT(DISTINCT c.SubscriberKey) AS FLOAT) /
+                NULLIF(COUNT(DISTINCT s.SubscriberKey), 0) * 100 AS CTR
+          FROM _Job j
+          INNER JOIN _Sent s ON j.JobID = s.JobID
+          LEFT JOIN _Open o ON s.JobID = o.JobID AND s.SubscriberKey = o.SubscriberKey
+          LEFT JOIN _Click c ON s.JobID = c.JobID AND s.SubscriberKey = c.SubscriberKey
+          LEFT JOIN _Bounce b ON s.JobID = b.JobID AND s.SubscriberKey = b.SubscriberKey
+          LEFT JOIN _Unsubscribe u ON s.JobID = u.JobID AND s.SubscriberKey = u.SubscriberKey
+          WHERE j.DeliveredTime >= DATEADD(day, -30, GETDATE())
+          GROUP BY j.EmailName, j.JobID, j.DeliveredTime
+          ORDER BY j.DeliveredTime DESC
+
+      daily_trend:
+        description: "Daily open/click trend for a specific email"
+        sql: |
+          /* Daily engagement trend */
+          SELECT
+              CONVERT(DATE, o.EventDate) AS OpenDate,
+              COUNT(DISTINCT o.SubscriberKey) AS UniqueOpens,
+              COUNT(*) AS TotalOpens
+          FROM _Open o
+          WHERE o.JobID = @JobID
+          GROUP BY CONVERT(DATE, o.EventDate)
+          ORDER BY OpenDate
+
+      click_heatmap:
+        description: "Which links got clicked and how often"
+        sql: |
+          /* Click distribution by URL */
+          SELECT
+              c.URL,
+              COUNT(DISTINCT c.SubscriberKey) AS UniqueClicks,
+              COUNT(*) AS TotalClicks
+          FROM _Click c
+          WHERE c.JobID = @JobID
+          GROUP BY c.URL
+          ORDER BY UniqueClicks DESC
+
+  - step: 3
+    name: "Format Results"
+    output_format: |
+      SFMC ENGAGEMENT REPORT
+      ══════════════════════
+
+      QUERY GENERATED: [which query pattern]
+      DATA RANGE: [date range]
+
+      ```sql
+      [Complete SQL — ready to paste into Query Studio]
+      ```
+
+      TARGET DE: [recommended DE name and schema for results]
+
+      HOW TO RUN:
+      1. Open Query Studio in SFMC
+      2. Create a target DE with the schema above
+      3. Paste the SQL and run
+      4. Results will be in the target DE
+
+      INTERPRETATION GUIDE:
+      - Open rate benchmarks for this email type: [range]
+      - CTR benchmarks: [range]
+      - What to watch for: [specific red flags in the data]
+
+rules:
+  - "Data Views retain limited history — _Open and _Click typically 6 months, warn about this"
+  - "Always use DISTINCT for unique metrics — Data Views contain duplicate rows"
+  - "Include NULLIF to prevent division by zero in rate calculations"
+  - "Warn about Apple Mail Privacy Protection inflating open rates"
+  - "Provide the target DE schema so results can be stored"

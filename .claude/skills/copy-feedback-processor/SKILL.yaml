@@ -1,0 +1,84 @@
+name: copy-feedback-processor
+version: "1.0.0"
+disable_model_invocation: false
+
+description:
+  short: >
+    Applies stakeholder revisions to a draft. Parses feedback (inline
+    comments, bullet lists, verbal notes), identifies which pipeline stages
+    are affected, and re-runs only those stages.
+  trigger_phrases:
+    - "apply this feedback"
+    - "stakeholder revisions"
+    - "process these edits"
+    - "incorporate feedback"
+    - "apply the changes they asked for"
+    - "revise based on comments"
+    - "update the draft with feedback"
+  when_to_use: >
+    Use this skill when feedback arrives after the copy pipeline has run.
+    Instead of re-running the entire pipeline, it identifies which stages
+    need re-execution and applies changes surgically.
+
+instructions:
+  - step: 1
+    name: "Parse the Feedback"
+    content: |
+      Accept feedback in any format:
+      - Inline comments ("change X to Y")
+      - Bullet list of changes
+      - Verbal/conversational notes ("the CTA feels weak", "too formal")
+      - Screenshot annotations
+      - Email thread with replies
+
+      For each piece of feedback, classify:
+      - Type: factual fix / tone change / structural change / strategic shift / addition / deletion
+      - Severity: minor (wording) / moderate (section rewrite) / major (strategic pivot)
+      - Pipeline stage affected: strategist / writer / QA / product-expert / humanizer
+
+  - step: 2
+    name: "Impact Analysis"
+    output_format: |
+      FEEDBACK ANALYSIS
+      ─────────────────
+      Total feedback items: [N]
+
+      | # | Feedback | Type | Severity | Stage Affected |
+      |---|----------|------|----------|----------------|
+      | 1 | "[feedback]" | [type] | [severity] | [stage] |
+
+      RE-RUN PLAN:
+      - Stages to re-run: [list — e.g., "writer → QA gate only"]
+      - Stages to skip: [list — e.g., "strategist (strategy unchanged)"]
+      - Estimated impact: [minor revision / moderate rewrite / near-restart]
+
+  - step: 3
+    name: "Apply Revisions"
+    content: |
+      Apply all feedback to the current draft:
+      - For factual fixes: apply directly, no re-run needed
+      - For tone changes: re-run writer stage with updated direction
+      - For structural changes: re-run writer → QA
+      - For strategic shifts: re-run from strategist onwards
+      Show the revised copy with changes highlighted in the output.
+    output_format: |
+      REVISED EMAIL
+      ═════════════
+
+      [Complete revised email]
+
+      CHANGES APPLIED:
+      - [Feedback item] → [what changed in the copy]
+
+      ITEMS NOT APPLIED (with reasoning):
+      - [Feedback item] → [why it was not applied — e.g., contradicts brand voice]
+
+      QA RE-CHECK:
+      [Quick re-run of QA gate on revised copy — pass/fail only]
+
+rules:
+  - "Always show what changed and why — no silent edits"
+  - "If feedback contradicts the brand brief or strategy, flag it instead of blindly applying"
+  - "Minor factual fixes don't need a full pipeline re-run — apply directly"
+  - "If feedback is ambiguous, ask for clarification rather than guessing intent"
+  - "Re-run QA gate on any revision, even minor ones — new issues can emerge"
